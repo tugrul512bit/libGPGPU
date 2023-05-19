@@ -110,22 +110,24 @@ Load balancing has two versions:
 Static load balancing: good for uniform work-loads over work-items / data elements (simple image-processing algorithms, nbody algorithm, string-searching, etc)
 ```C++
 // sample system: iGPU with 128 shaders @ 2GHz, dGPU with 384 shaders @ 1.5 GHz, CPU with 192 pipelines @ 5.3 GHz
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // equal work for all (50 milliseconds)
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // iGPU=1x work-items, dGPU=1.2x work-items, CPU=1.4x work-items (45 milliseconds)
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // iGPU=1x work-items, dGPU=1.5x work-items, CPU=2.0x work-items (33 milliseconds)
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // iGPU=1x work-items, dGPU=2.2x work-items, CPU=3.4x work-items (20 milliseconds)
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // iGPU=1x work-items, dGPU=2.4x work-items, CPU=3.7x work-items (17 milliseconds)
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // 15 milliseconds
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // 15 milliseconds
+computer.run("kernel", 0, n, 256); // equal work for all (50 milliseconds)
+computer.run("kernel", 0, n, 256); // iGPU=1x work-items, dGPU=1.2x work-items, CPU=1.4x work-items (45 milliseconds)
+computer.run("kernel", 0, n, 256); // iGPU=1x work-items, dGPU=1.5x work-items, CPU=2.0x work-items (33 milliseconds)
+computer.run("kernel", 0, n, 256); // iGPU=1x work-items, dGPU=2.2x work-items, CPU=3.4x work-items (20 milliseconds)
+computer.run("kernel", 0, n, 256); // iGPU=1x work-items, dGPU=2.4x work-items, CPU=3.7x work-items (17 milliseconds)
+computer.run("kernel", 0, n, 256); // 15 milliseconds
+computer.run("kernel", 0, n, 256); // 15 milliseconds
 ```
 
 Dynamic load balancing: good for non-uniform work-loads (mandelbrot-set generation, ray tracing, etc)
 ```C++
 // sample system: iGPU with 128 shaders @ 2GHz, dGPU with 384 shaders @ 1.5 GHz, CPU with 192 pipelines @ 5.3 GHz
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds iGPU=1x work-items, dGPU=2.4x work-items, CPU=3.7x work-items (17 milliseconds)
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds
-computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds (with 5 milliseconds of extra sync-latency for queue-processing)
+// grain size = 2048 work-items (or 8x work-groups), can be any multiple of work group size
+// local threads = 256 (work group size)
+computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds iGPU=1x work-items, dGPU=2.4x work-items, CPU=3.7x work-items (17 milliseconds)
+computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds
+computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds
+computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds
+computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds
+computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds (with 5 milliseconds of extra sync-latency for queue-processing + 15 milliseconds of computation)
 ```
