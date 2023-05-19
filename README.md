@@ -60,13 +60,14 @@ int main()
         }
 
         // set kernel parameters (0: first parameter of kernel, 1: second parameter of kernel)
-        // uses only names of kernels and parameters to bind
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
 
         // copies input elements (a) to devices, runs kernel on devices, copies output elements to RAM (b), uses n/4 total threads distributed to devices, 256 threads per work-group in devices
-        // faster devices are given more threads automatically
+        // faster devices are given more threads automatically (after every call to run method)
         computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
+        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // balancing more
+        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // slowly converging to optimum balance where total computation time is minimized
 
         // check output array
         for (int i = 0; i < n; i++)
@@ -82,6 +83,7 @@ int main()
     }
     return 0;
 }
+
 ```
 
 Kernel parameters can be selected in a different way by method-chaining:
