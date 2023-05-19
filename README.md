@@ -58,38 +58,38 @@ int main()
             b.access<int>(i) = 0;
         }
 
-
+        // set kernel parameters manually when not using parameter.next(parameter2).next(parameter3) .... inside compute() method of Computer struct
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
 
 
         constexpr int repeat = 100;
-        size_t nano, nano2 = 0;
+        size_t nano;
         {
 
             for (int i = 0; i < repeat; i++)
             {
                 {
+                    // benchmark this scope
                     Bench bench(&nano);
                     
                     // multi-step load-balancing: slowly converges to balance, low latency per step
-                    computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256);
+                    computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
                     // this version does not need "setKernelParameter":
                     //computer.compute(a.next(b), "add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256);
                     
                     // in-step load balancing: good starting balance, fair balancing for uneven workloads, high latency
-                    //computer.runFineGrainedLoadBalancing("add1ToEveryElementBut4ElementsPerThread", 0, n/4, 256,1024*8);
+                    //computer.runFineGrainedLoadBalancing("add1ToEveryElementBut4ElementsPerThread", 0, n/4, 256,1024*8); // fine grain = 1024*8 threads (total work = 1M threads, divided into grains), 256 local threads (grain size has to be an integer multiple of local threads or at least equal to it)
                     // this version does not need "setKernelParameter":
                     //computer.compute(a.next(b), "add1ToEveryElementBut4ElementsPerThread", 0, n/4, 256,true,1024*8);
                     
                 }
-                nano2 += nano;
                 std::cout << "1 iteration = " << nano / 1000000000.0 << " seconds" << std::endl;
-
             }
 
         }
 
+        // check output to find any computational error of OpenCL or library
         for (int i = 0; i < n; i++)
         {
             if (a.access<int>(i) + 1 != b.access<int>(i))
