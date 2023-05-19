@@ -3,7 +3,9 @@
 Multi-GPU, Multi-Accelerator and CPU device controller to run OpenCL kernels with load-balancing to minimize running-times of kernels. 
 
 - When CPU is included as a device, it is partitioned to dedicate some of threads for other devices' I/O management (copying buffers, synchronizing their threads, etc).
-- Every device is given a dedicated CPU thread for independent scheduling/sync control.
+- Each device is given a dedicated CPU thread that does independent scheduling/synchronization for high performance load-balancing.
+- RAM-sharing devices are given mapping ability instead of copying during computations. Integrated GPUs and CPUs get full RAM bandwidth when running kernels.
+- Devices can be cloned for overlapping I/O/compute operations to decrease overall latency or increase throughput during load-balancing. CPU is not cloned.
 
 Dependency:
 
@@ -28,7 +30,8 @@ int main()
     {
         constexpr size_t n = 1024 * 1024;
 
-        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL, GPGPU::Computer::DEVICE_SELECTION_ALL);
+        int clonesPerDevice = 1;
+        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL, GPGPU::Computer::DEVICE_SELECTION_ALL, clonesPerDevice);
 
         computer.compile(std::string(R"(
                 #define n )") + std::to_string(n) + std::string(R"(
