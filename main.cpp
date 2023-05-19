@@ -42,7 +42,7 @@ int main()
         bool isBoutput = true;
         bool isInputRandomAccess = false; // random access = true means whole input data will be required in every thread (false = every thread only uses its own data element)
         bool dataElementsPerThread = 4;
-        GPGPU::HostParameter a = computer.createHostParameter<int>("a", n, dataElementsPerThread, isAinput, isAoutput, isInputRandomAccess);
+        GPGPU::HostParameter a = computer.createHostParameter<int>("a", n, dataElementsPerThread, isAinput, isAoutput, isInputRandomAccess); 
         GPGPU::HostParameter b = computer.createHostParameter<int>("b", n, dataElementsPerThread, isBinput, isBoutput, isInputRandomAccess);
 
         // initialize host buffers
