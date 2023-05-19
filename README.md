@@ -134,3 +134,4 @@ computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 millisecon
 computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds
 computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds (with 5 milliseconds of extra sync-latency for queue-processing + 15 milliseconds of computation)
 ```
+with this version, n work-items are divided into chunks of 2048 and are computed from a shared queue between all devices. Faster devices naturally take more chunks from queue and the work load is automatically balanced.
