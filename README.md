@@ -2,7 +2,8 @@
 
 Multi-GPU, Multi-Accelerator and CPU device controller to run OpenCL kernels with load-balancing to minimize running-times of kernels. 
 
-When CPU is included near other devices, the CPU device is partitioned to dedicate some of threads for other devices' I/O management (copying buffers, synchronizing their threads, etc).
+- When CPU is included as a device, it is partitioned to dedicate some of threads for other devices' I/O management (copying buffers, synchronizing their threads, etc).
+- Every device is given a dedicated CPU thread for independent scheduling/sync control.
 
 Dependency:
 
@@ -11,10 +12,10 @@ Dependency:
 Hello-world sample:
 
 ```C++
-// a program that adds 1 to all elements of an array
-// each GPU/Accelerator/CPU thread computes 4 element
+// a program that adds 1 to all elements of an array, computed on all devices with a number of work-items given to them
+// each GPU/Accelerator/CPU "work-item" computes 4 element
 // both input and output arrays are integer arrays
-// 256k threads compute 1M elements
+// 256k work-items compute 1M elements (they flow through shader-pipelines in GPUs and SIMD units in CPUs)
 
 #include <iostream>
 #include "gpgpu.hpp"
@@ -97,4 +98,31 @@ Kernel parameters can be selected in a different way by method-chaining:
 // With this:
         computer.compute(a.next(b),"add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); 
 ```
-both versions are equivalent with a trivial amount of extra latency on second version.
+both versions are equivalent with a trivial amount of extra host latency (and less device-latency) on second version.
+
+Load balancing has two versions:
+- dynamic: a queue is filled with many small pieces of work, then all devices independently consume the queue until it is empty. this has good work-distribution quality but high latency due to multiple synchronizations
+- static: work is divided into bigger chunks and they are directly sent to all devices. after each run, device performances are calculated and a new(and better) work-distribution ratio is found for next run.
+
+Static load balancing: good for uniform work-loads over work-items / data elements (simple image-processing algorithms, nbody algorithm, string-searching, etc)
+```C++
+// sample system: iGPU with 128 shaders @ 2GHz, dGPU with 384 shaders @ 1.5 GHz, CPU with 192 pipelines @ 5.3 GHz
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // equal work for all (50 milliseconds)
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // iGPU=1x work-items, dGPU=1.2x work-items, CPU=1.4x work-items (45 milliseconds)
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // iGPU=1x work-items, dGPU=1.5x work-items, CPU=2.0x work-items (33 milliseconds)
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // iGPU=1x work-items, dGPU=2.2x work-items, CPU=3.4x work-items (20 milliseconds)
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // iGPU=1x work-items, dGPU=2.4x work-items, CPU=3.7x work-items (17 milliseconds)
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // 15 milliseconds
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // 15 milliseconds
+```
+
+Dynamic load balancing: good for non-uniform work-loads (mandelbrot-set generation, ray tracing, etc)
+```C++
+// sample system: iGPU with 128 shaders @ 2GHz, dGPU with 384 shaders @ 1.5 GHz, CPU with 192 pipelines @ 5.3 GHz
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds iGPU=1x work-items, dGPU=2.4x work-items, CPU=3.7x work-items (17 milliseconds)
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds
+computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n, 256); // 20 milliseconds (with 5 milliseconds of extra sync-latency for queue-processing)
+```
