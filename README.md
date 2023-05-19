@@ -21,9 +21,9 @@ Hello-world sample:
 int main()
 {
     try
-    {   
+    {
         constexpr size_t n = 1024 * 1024;
-        
+
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL, GPGPU::Computer::DEVICE_SELECTION_ALL);
 
         computer.compile(std::string(R"(
@@ -43,12 +43,12 @@ int main()
            )"), "add1ToEveryElementBut4ElementsPerThread");
 
         // create parameters of kernel (also allocated in each device)
-        bool isAinput = true; 
+        bool isAinput = true;
         bool isBinput = false;
-        bool isAoutput = false; 
+        bool isAoutput = false;
         bool isBoutput = true;
-        bool isInputRandomAccess = false; 
-        bool dataElementsPerThread = 4;
+        bool isInputRandomAccess = false;
+        int dataElementsPerThread = 4;
         GPGPU::HostParameter a = computer.createHostParameter<int>("a", n, dataElementsPerThread, isAinput, isAoutput, isInputRandomAccess);
         GPGPU::HostParameter b = computer.createHostParameter<int>("b", n, dataElementsPerThread, isBinput, isBoutput, isInputRandomAccess);
 
@@ -60,6 +60,7 @@ int main()
         }
 
         // set kernel parameters (0: first parameter of kernel, 1: second parameter of kernel)
+        // uses only names of kernels and parameters to bind
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
 
@@ -82,3 +83,16 @@ int main()
     return 0;
 }
 ```
+
+Kernel parameters can be selected in a different way by method-chaining:
+
+```C++
+// Replace this:
+        computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
+        computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
+        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
+        
+// With this:
+        computer.compute(a.next(b),"add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); 
+```
+both versions are equivalent with a trivial amount of extra latency on second version.
