@@ -7,7 +7,10 @@ Multi-GPU, Multi-Accelerator and CPU device controller to run OpenCL kernels wit
 
 Dependency:
 
-- vcpkg (that auto-installs OpenCL to the project)
+- vcpkg (that auto-installs OpenCL for the project)
+- OpenCL 1.2 runtime (s) [Intel's runtime can find CPUs of AMD processors too & run AVX512 on Ryzen 7000 series CPU cores] (multiple platforms are scanned for all devices)
+- OpenCL device(s)
+- C++17
 
 Hello-world sample:
 
