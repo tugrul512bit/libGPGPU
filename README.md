@@ -11,7 +11,7 @@ Dependency:
 
 - vcpkg (that auto-installs OpenCL for the project)
 - OpenCL 1.2 runtime (s) [Intel's runtime can find CPUs of AMD processors too & run AVX512 on Ryzen 7000 series CPU cores] (multiple platforms are scanned for all devices)
-- OpenCL device(s)
+- OpenCL device(s) like GTX 1050 ti graphics card, Ryzen 7900x CPU, integrated GPU, all at the same time can be used as a big unified GPU.
 - C++17
 
 Hello-world sample:
