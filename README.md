@@ -93,6 +93,15 @@ int main()
 
 ```
 
+output:
+
+```
+GeForce GT 1030 (OpenCL 1.2 CUDA )
+gfx1036 (OpenCL 2.0 AMD-APP (3444.0) )[direct access to RAM]
+AMD Ryzen 9 7900 12-Core Processor              (OpenCL 3.0 (Build 0) )[direct access to RAM]
+ok
+```
+
 Kernel parameters can be selected in a different way by method-chaining:
 
 ```C++
