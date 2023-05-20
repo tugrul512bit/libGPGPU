@@ -14,11 +14,14 @@ namespace GPGPU
 {
 	struct Computer
 	{
+
 		const static int DEVICE_ALL = 1 + 2 + 4;
 		const static int DEVICE_GPUS = 1;
 		const static int DEVICE_CPUS = 2;
 		const static int DEVICE_ACCS = 4;
 		const static int DEVICE_SELECTION_ALL = -1;
+
+	private:
 		std::map<std::string, std::vector<double>> loadBalances;
 		std::vector<size_t> offsets;
 		std::vector<size_t> ranges;
@@ -35,6 +38,7 @@ namespace GPGPU
 			deviceSelection = Computer::DEVICE_ALL ==> uses all gpu & cpu devices
 
 		*/
+	public:
 		Computer(int deviceSelection, int selectionIndex = DEVICE_SELECTION_ALL, int clonesPerDevice = 1);
 
 		int getNumDevices();

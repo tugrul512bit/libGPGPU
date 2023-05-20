@@ -16,7 +16,7 @@ int main()
     {
         constexpr size_t n = 1024 * 1024;
         int clonesPerDevice = 1;
-        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL, GPGPU::Computer::DEVICE_SELECTION_ALL, clonesPerDevice);
+        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL);
         
         auto deviceNames = computer.deviceNames();
         for (auto d : deviceNames)
@@ -58,7 +58,7 @@ int main()
             a.access<int>(i) = i;
             b.access<int>(i) = 0;
         }
-         
+       
         // set kernel parameters (0: first parameter of kernel, 1: second parameter of kernel)
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
