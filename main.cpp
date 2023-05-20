@@ -58,7 +58,7 @@ int main()
             a.access<int>(i) = i;
             b.access<int>(i) = 0;
         }
-
+         
         // set kernel parameters (0: first parameter of kernel, 1: second parameter of kernel)
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
