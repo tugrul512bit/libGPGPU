@@ -1,4 +1,11 @@
 #pragma once
+
+#ifndef GPGPU_TASK_QUEUE_LIB
+#define GPGPU_TASK_QUEUE_LIB
+
+
+
+
 #include "gpgpu_init.hpp"
 #include "parameter.h"
 #include "command-queue.h"
@@ -40,22 +47,7 @@ namespace GPGPU
 		int taskType;
 
 
-		GPGPUTask() :
-			kernelCode(""),
-			kernelName(""),
-			parameterName(""),
-			parameterPosition(0),
-			offset(0),
-			globalSize(0),
-			localSize(0),
-			hostParPtr(nullptr),
-			comQuePtr(nullptr),
-			taskType(0),
-			conPtr(nullptr),
-			mutexPtr(nullptr),
-			sharedTaskQueue(nullptr),
-			globalOffset(0)
-		{}
+		GPGPUTask();
 
 	};
 
@@ -65,38 +57,15 @@ namespace GPGPU
 		std::condition_variable condition;
 		std::queue<GPGPUTask> tasks;
 
-		GPGPUTaskQueue()
-		{
+		GPGPUTaskQueue();
 
-		}
+		bool inProgress();
 
-		bool inProgress()
-		{
-			std::lock_guard<std::mutex> lock(syncPoint);
-			return tasks.size() > 0;
-		}
+		void push(GPGPUTask task);
 
-		void push(GPGPUTask task)
-		{
-			std::lock_guard<std::mutex> lock(syncPoint);
-			tasks.push(task);
-			condition.notify_all();
-		}
-
-		GPGPUTask pop()
-		{
-
-			std::unique_lock<std::mutex> lock(syncPoint);
-
-			while (tasks.size() == 0)
-			{
-				condition.wait(lock, [&]() { return tasks.size() > 0;  });
-			}
-
-			GPGPUTask result = tasks.front();
-			tasks.pop();
-			return result;
-		}
+		GPGPUTask pop();
 	};
 
 }
+
+#endif // !GPGPU_TASK_QUEUE_LIB

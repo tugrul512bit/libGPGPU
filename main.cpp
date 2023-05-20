@@ -4,17 +4,30 @@
 // 256k threads compute 1M elements
 
 #include <iostream>
+
+// uncomment this if you use opencl v2.0 or v3.0 devices. By default, opencl v1.2 devices are queried. 
+// must be defined before including "gpgpu.hpp"
+//#define CL_HPP_MINIMUM_OPENCL_VERSION 200
+
 #include "gpgpu.hpp"
 int main()
 {
     try
     {
         constexpr size_t n = 1024 * 1024;
-
-        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL, GPGPU::Computer::DEVICE_SELECTION_ALL);
+        int clonesPerDevice = 1;
+        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL, GPGPU::Computer::DEVICE_SELECTION_ALL, clonesPerDevice);
+        
+        auto deviceNames = computer.deviceNames();
+        for (auto d : deviceNames)
+        {
+            std::cout << d << std::endl;
+        }
 
         computer.compile(std::string(R"(
                 #define n )") + std::to_string(n) + std::string(R"(
+                    
+                    
                     // C99 code for OpenCL 1.2 [C++ for OpenCL 2.0]
                     // every GPU thread adds one to 4 elements
                     void kernel add1ToEveryElementBut4ElementsPerThread(global int * a, global int * b) 

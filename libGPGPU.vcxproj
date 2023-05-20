@@ -151,8 +151,18 @@
     <ClInclude Include="worker.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="command-queue.cpp" />
     <ClCompile Include="command-queue.h" />
+    <ClCompile Include="computer.cpp" />
+    <ClCompile Include="context.cpp" />
+    <ClCompile Include="device.cpp" />
+    <ClCompile Include="gpgpu_init.cpp" />
+    <ClCompile Include="kernel.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="parameter.cpp" />
+    <ClCompile Include="platform.cpp" />
+    <ClCompile Include="task-queue.cpp" />
+    <ClCompile Include="worker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />
