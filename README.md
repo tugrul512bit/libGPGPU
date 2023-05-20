@@ -11,7 +11,7 @@ Dependency:
 
 - vcpkg (that auto-installs OpenCL for the project)
 - OpenCL 1.2 runtime (s) [Intel's runtime can find CPUs of AMD processors too & run AVX512 on Ryzen 7000 series CPU cores] (multiple platforms are scanned for all devices)
-- OpenCL device(s)
+- OpenCL device(s) like GTX 1050 ti graphics card, Ryzen 7900x CPU, integrated GPU, all at the same time can be used as a big unified GPU.
 - C++17
 
 Hello-world sample:
@@ -134,3 +134,4 @@ computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 millisecon
 computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds
 computer.runFineGrainedLoadBalancing("kernel", 0, n, 256,2048); // 20 milliseconds (with 5 milliseconds of extra sync-latency for queue-processing + 15 milliseconds of computation)
 ```
+with this version, n work-items are divided into chunks of 2048 and are computed from a shared queue between all devices. Faster devices naturally take more chunks from queue and the work load is automatically balanced.
