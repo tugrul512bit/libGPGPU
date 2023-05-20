@@ -9,7 +9,7 @@ Multi-GPU, Multi-Accelerator and CPU device controller to run OpenCL kernels wit
 
 Dependency:
 
-- vcpkg (that auto-installs OpenCL for the project)
+- vcpkg (that auto-installs OpenCL for the project) ![vcpkg](https://github.com/tugrul512bit/libGPGPU/assets/23708129/4a064dcb-b967-478d-a15f-fc69f4e3e9ee)
 - OpenCL 1.2 runtime (s) [Intel's runtime can find CPUs of AMD processors too & run AVX512 on Ryzen 7000 series CPU cores] (multiple platforms are scanned for all devices)
 - OpenCL device(s) like GTX 1050 ti graphics card, Ryzen 7900x CPU, integrated GPU, all at the same time can be used as a big unified GPU.
 - C++17
