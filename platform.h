@@ -5,7 +5,7 @@
 #include "gpgpu_init.hpp"
 #include "device.h"
 #include <iostream>
-namespace GPGPU
+namespace GPGPU_LIB
 {
 	struct PlatformManager
 	{

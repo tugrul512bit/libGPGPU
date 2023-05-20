@@ -1,6 +1,6 @@
 
 #include "platform.h"
-namespace GPGPU
+namespace GPGPU_LIB
 {
 
 		PlatformManager::PlatformManager()

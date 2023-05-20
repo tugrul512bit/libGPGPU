@@ -1,5 +1,5 @@
 #include "device.h"
-namespace GPGPU
+namespace GPGPU_LIB
 {
 	Device::Device(cl::Device dev, int idPrm, bool sharesRAMPrm, bool isCPUPrm )
 	{

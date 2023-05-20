@@ -11,7 +11,7 @@
 #include "parameter.h"
 #include "kernel.h"
 
-namespace GPGPU
+namespace GPGPU_LIB
 {
 	struct CommandQueue
 	{

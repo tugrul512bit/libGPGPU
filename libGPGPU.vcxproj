@@ -151,6 +151,7 @@
     <ClInclude Include="worker.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="benchmark.cpp" />
     <ClCompile Include="command-queue.cpp" />
     <ClCompile Include="command-queue.h" />
     <ClCompile Include="computer.cpp" />

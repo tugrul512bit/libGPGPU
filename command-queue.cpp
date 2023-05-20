@@ -1,7 +1,7 @@
 #pragma once
 
 #include "command-queue.h"
-namespace GPGPU
+namespace GPGPU_LIB
 {
 	CommandQueue::CommandQueue(Context con) :queue(con.context, con.device.device)
 	{

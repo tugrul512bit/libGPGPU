@@ -5,10 +5,10 @@ namespace GPGPU
 	Computer::Computer(int deviceSelection, int selectionIndex, int clonesPerDevice)
 	{
 
-		std::vector<Device> allGPUs = platform.getDevices(CL_DEVICE_TYPE_GPU);
-		std::vector<Device> allACCs = platform.getDevices(CL_DEVICE_TYPE_ACCELERATOR);
+		std::vector<GPGPU_LIB::Device> allGPUs = platform.getDevices(CL_DEVICE_TYPE_GPU);
+		std::vector<GPGPU_LIB::Device> allACCs = platform.getDevices(CL_DEVICE_TYPE_ACCELERATOR);
 
-		std::vector<Device> allDevices;
+		std::vector<GPGPU_LIB::Device> allDevices;
 
 
 
@@ -26,7 +26,7 @@ namespace GPGPU
 		}
 
 		const int nOtherDevices = allDevices.size();
-		std::vector<Device> allCPUs = platform.getDevices(CL_DEVICE_TYPE_CPU, nOtherDevices);
+		std::vector<GPGPU_LIB::Device> allCPUs = platform.getDevices(CL_DEVICE_TYPE_CPU, nOtherDevices);
 
 		if (deviceSelection & DEVICE_CPUS)
 		{
@@ -44,7 +44,7 @@ namespace GPGPU
 		bool cpuCloned = false;
 		for (int j = 0; j < clonesPerDevice; j++)
 		{
-			std::vector<Device> selectedDevices;
+			std::vector<GPGPU_LIB::Device> selectedDevices;
 			if (selectionIndex == DEVICE_SELECTION_ALL)
 			{
 				selectedDevices = allDevices;
@@ -71,7 +71,7 @@ namespace GPGPU
 					ranges.push_back(1);
 					selectedDevices[i].id = uniqueId++;// giving unique id to each device
 
-					workers.push_back(std::make_shared<Worker>(selectedDevices[i]));
+					workers.push_back(std::make_shared<GPGPU_LIB::Worker>(selectedDevices[i]));
 				}
 			}
 		}
@@ -139,14 +139,14 @@ namespace GPGPU
 	void Computer::runFineGrainedLoadBalancing(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize)
 	{
 		//std::cout << "debug 2.5" << std::endl;
-		std::shared_ptr<GPGPUTaskQueue> taskQueue = std::make_shared<GPGPUTaskQueue>();
+		std::shared_ptr<GPGPU_LIB::GPGPUTaskQueue> taskQueue = std::make_shared<GPGPU_LIB::GPGPUTaskQueue>();
 
 		//std::cout << "debug 4" << std::endl;
 		for (size_t i = 0; i < numGlobalThreads; i += loadSize)
 		{
 
-			GPGPUTask task;
-			task.taskType = GPGPUTask::GPGPU_TASK_COMPUTE;
+			GPGPU_LIB::GPGPUTask task;
+			task.taskType = GPGPU_LIB::GPGPUTask::GPGPU_TASK_COMPUTE;
 			task.kernelName = kernelName;
 			task.globalOffset = offsetElement;
 			task.offset = i;
@@ -161,8 +161,8 @@ namespace GPGPU
 		for (int i = 0; i < workers.size(); i++)
 		{
 			// mark end of queue for each worker
-			GPGPUTask task;
-			task.taskType = GPGPUTask::GPGPU_TASK_NULL;
+			GPGPU_LIB::GPGPUTask task;
+			task.taskType = GPGPU_LIB::GPGPUTask::GPGPU_TASK_NULL;
 			taskQueue->push(task);
 			workers[i]->runTasks(taskQueue);
 		}
@@ -340,7 +340,7 @@ namespace GPGPU
 	}
 
 	void Computer::compute(
-		HostParameter prm,
+		GPGPU::HostParameter prm,
 		std::string kernelName,
 		size_t offsetElement,
 		size_t numGlobalThreads,

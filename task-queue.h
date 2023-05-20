@@ -10,7 +10,7 @@
 #include "parameter.h"
 #include "command-queue.h"
 #include "context.h"
-namespace GPGPU
+namespace GPGPU_LIB
 {
 	struct GPGPUTaskQueue;
 	struct GPGPUTask
@@ -31,7 +31,7 @@ namespace GPGPU
 		size_t globalSize;
 		size_t localSize;
 		size_t globalOffset;
-		HostParameter* hostParPtr;
+		GPGPU::HostParameter* hostParPtr;
 		CommandQueue* comQuePtr;
 		std::shared_ptr<GPGPUTaskQueue> sharedTaskQueue;
 		Context* conPtr;

@@ -10,7 +10,7 @@
 #include "command-queue.h"
 #include "task-queue.h"
 #include <map>
-namespace GPGPU
+namespace GPGPU_LIB
 {
 
 	struct Worker
@@ -38,7 +38,7 @@ namespace GPGPU
 
 		void compile(std::string kernel, std::string kernelName, std::mutex* compileLock);
 
-		void mirror(HostParameter* hostParameter);
+		void mirror(GPGPU::HostParameter* hostParameter);
 
 		void setArg(std::string kernelName, std::string parameterName, int parameterIndex);
 

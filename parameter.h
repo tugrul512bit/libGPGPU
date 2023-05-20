@@ -8,14 +8,26 @@
 
 #include <memory>
 
+namespace GPGPU_LIB
+{
+	struct Parameter;
+	struct CommandQueue;
+}
+
 namespace GPGPU
 {
 	struct Computer;
+	struct Worker;
+
 	// per-program allocated host memory
 	struct HostParameter
 	{
+		friend struct GPGPU_LIB::Parameter;
+		friend struct Worker;
+		friend struct GPGPU_LIB::CommandQueue;
+		friend struct Computer;
+	private:
 		std::string name;
-
 		size_t n;
 		size_t elementSize;
 		size_t elementsPerThr;
@@ -27,6 +39,7 @@ namespace GPGPU
 		bool readOp;
 		bool writeOp;
 		bool readAllOp;
+	public:
 		HostParameter(
 			std::string parameterName = "",
 			size_t nElements = 1,
@@ -46,9 +59,14 @@ namespace GPGPU
 
 		HostParameter next(HostParameter prm);
 
-	
-		
+		std::string getName();		
+
 	};
+}
+
+namespace GPGPU_LIB
+{
+
 
 
 	// per-device allocated memory
@@ -59,11 +77,11 @@ namespace GPGPU
 		size_t elementSize;
 		size_t elementsPerThread;
 		cl::Buffer buffer;
-		HostParameter hostPrm;
+		GPGPU::HostParameter hostPrm;
 		bool readOp;
 		bool writeOp;
 		bool readAll;
-		Parameter(Context con = Context(), HostParameter hostParameter = HostParameter());
+		Parameter(Context con = Context(), GPGPU::HostParameter hostParameter = GPGPU::HostParameter());
 	};
 
 

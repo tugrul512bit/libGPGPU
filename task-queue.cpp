@@ -1,7 +1,7 @@
 #include "task-queue.h"
 
 
-namespace GPGPU
+namespace GPGPU_LIB
 {
 	struct GPGPUTaskQueue;
 

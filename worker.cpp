@@ -1,6 +1,6 @@
 #include "worker.h"
 
-namespace GPGPU
+namespace GPGPU_LIB
 {
 
 		Worker::Worker(Device dev) :working(true), currentWorkComplete(true)
@@ -57,7 +57,7 @@ namespace GPGPU
 				case (GPGPUTask::GPGPU_TASK_MIRROR):
 				{
 
-					mapParameterNameToParameter[task.hostParPtr->name] = Parameter(*task.conPtr, *task.hostParPtr);
+					mapParameterNameToParameter[task.hostParPtr->getName()] = Parameter(*task.conPtr, *task.hostParPtr);
 					break;
 				}
 
@@ -73,7 +73,7 @@ namespace GPGPU
 				{
 
 					{
-						Bench bench(&nanoLastCommand);
+						GPGPU::Bench bench(&nanoLastCommand);
 						Kernel& kernel = mapKernelNameToKernel[task.kernelName];
 						task.comQuePtr->copyInputsOfKernel(kernel, task.globalOffset, task.offset, task.globalSize);
 						task.comQuePtr->run(kernel, task.globalOffset, task.globalSize, task.localSize, task.offset);
@@ -89,7 +89,7 @@ namespace GPGPU
 				{
 
 					{
-						Bench bench(&nanoLastCommand);
+						GPGPU::Bench bench(&nanoLastCommand);
 						GPGPUTask taskNew;
 						while ((taskNew = task.sharedTaskQueue->pop()).taskType != GPGPUTask::GPGPU_TASK_NULL)
 						{
@@ -184,7 +184,7 @@ namespace GPGPU
 			waitAllTasks();
 		}
 
-		void Worker::mirror(HostParameter* hostParameter)
+		void Worker::mirror(GPGPU::HostParameter* hostParameter)
 		{
 			GPGPUTask task;
 			task.taskType = GPGPUTask::GPGPU_TASK_MIRROR;

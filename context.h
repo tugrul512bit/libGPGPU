@@ -6,7 +6,7 @@
 
 #include "gpgpu_init.hpp"
 #include "device.h"
-namespace GPGPU
+namespace GPGPU_LIB
 {
 	struct Context
 	{

@@ -27,9 +27,9 @@ namespace GPGPU
 		std::vector<size_t> ranges;
 		std::map<std::string, std::vector<std::vector<double>>> oldLoadBalances;
 
-		PlatformManager platform;
-		std::vector<std::shared_ptr<Worker>> workers;
-		std::map<std::string, HostParameter> hostParameters;
+		GPGPU_LIB::PlatformManager platform;
+		std::vector<std::shared_ptr<GPGPU_LIB::Worker>> workers;
+		std::map<std::string, GPGPU::HostParameter> hostParameters;
 		std::mutex compileLock; // serialize device code compilations
 
 		// kernel to parameters to position mapping
@@ -68,7 +68,7 @@ namespace GPGPU
 		void run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads);
 
 		void compute(
-			HostParameter prm,
+			GPGPU::HostParameter prm,
 			std::string kernelName,
 			size_t offsetElement,
 			size_t numGlobalThreads,

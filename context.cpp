@@ -1,6 +1,6 @@
 #include "context.h"
 
-GPGPU::Context::Context(GPGPU::Device dev)
+GPGPU_LIB::Context::Context(GPGPU_LIB::Device dev)
 {
 	context = cl::Context(dev.device);
 	device = dev;

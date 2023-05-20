@@ -1,23 +1,23 @@
 #pragma once
-#pragma once
-//RAII style benchmark utility
-#include<chrono>
-class Bench
-{
-public:
-	Bench(size_t* targetPtr)
-	{
-		target = targetPtr;
-		t1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
-		t2 = std::chrono::nanoseconds(0);
-	}
+#ifndef GPGPU_BENCH_LIB
+#define GPGPU_BENCH_LIB
 
-	~Bench()
+
+#include<chrono>
+namespace GPGPU
+{
+	//RAII style benchmark utility
+
+	class Bench
 	{
-		t2 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch());
-		*target = t2.count() - t1.count();
-	}
-private:
-	size_t* target;
-	std::chrono::nanoseconds t1, t2;
-};
+	public:
+		Bench(size_t* targetPtr);
+
+		~Bench();
+	private:
+		size_t* target;
+		std::chrono::nanoseconds t1, t2;
+	};
+}
+
+#endif // !GPGPU_BENCH_LIB

@@ -89,6 +89,9 @@
     <ClCompile Include="worker.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="benchmark.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json" />

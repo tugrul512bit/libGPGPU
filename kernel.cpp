@@ -1,5 +1,5 @@
 #include "kernel.h"
-namespace GPGPU
+namespace GPGPU_LIB
 {
 	Kernel::Kernel(Context con, std::string kernelCode, std::string kernelName )
 	{
