@@ -5,7 +5,10 @@ Multi-GPU, Multi-Accelerator and CPU device controller to run OpenCL kernels wit
 - When CPU is included as a device, it is partitioned to dedicate some of threads for other devices' I/O management (copying buffers, synchronizing their threads, etc).
 - Each device is given a dedicated CPU thread that does independent scheduling/synchronization for high performance load-balancing.
 - RAM-sharing devices are given mapping ability instead of copying during computations. Integrated GPUs and CPUs get full RAM bandwidth when running kernels.
-- Devices can be cloned for overlapping I/O/compute operations to decrease overall latency or increase throughput during load-balancing. CPU is not cloned.
+- - Only CPU or only iGPU can use this feature at the same time because OpenCL spec does undefined behavior if multiple devices use same host pointer during mapping/unmapping
+- - Preferably (and by default) CPU is given the feature by constructor because non-gaming APUs have more core power than shader power. Gamers should have ```giveDirectRamAccessToCPU=false```on constructor
+- - CPU RAM-sharing devices also benefit good from CPU L3 cache (especially if it is bigger than dataset)
+- Devices can be cloned for overlapping I/O/compute operations to decrease overall latency or increase throughput during load-balancing. CPU & iGPU are not cloned.
 
 Dependency:
 
@@ -50,10 +53,11 @@ int main()
            )"), "add1ToEveryElementBut4ElementsPerThread");
 
         // create parameters of kernel (also allocated in each device)
-        bool isAinput = true;
+        // a buffer can be only one of these: {input=true,output=false} (means input), {output=true,input=false} (means output), or {input=false,output=false} which means it is only accessed by device
+        bool isAinput = true; // host writes to buffer, kernel reads from buffer
         bool isBinput = false;
         bool isAoutput = false;
-        bool isBoutput = true;
+        bool isBoutput = true; // kernel writes to buffer, host reads from buffer
         bool isInputRandomAccess = false;
         int dataElementsPerThread = 4;
         GPGPU::HostParameter a = computer.createHostParameter<int>("a", n, dataElementsPerThread, isAinput, isAoutput, isInputRandomAccess);
