@@ -61,6 +61,7 @@ namespace GPGPU
 
 		int uniqueId = 0;
 		bool cpuCloned = false;
+		bool iGPUCloned = false;
 		for (int j = 0; j < clonesPerDevice; j++)
 		{
 			std::vector<GPGPU_LIB::Device> selectedDevices;
@@ -83,6 +84,13 @@ namespace GPGPU
 
 					cpuCloned = true;
 				}
+				else if (selectedDevices[i].sharesRAM) // not a CPU, shares RAM = iGPU = not cloned either ()
+				{
+					if (iGPUCloned)
+						ok = false;
+					iGPUCloned = true;
+				}
+
 				if (ok)
 				{
 
@@ -415,7 +423,7 @@ namespace GPGPU
 		std::vector<std::string> names;
 		for (int i = 0; i < workers.size(); i++)
 		{
-			names.push_back(workers[i]->deviceName());
+			names.push_back(std::string("Device ")+std::to_string(i)+std::string(": ") + workers[i]->deviceName() + (!workers[i]->context.device.sharesRAM ? " [direct-RAM-access disabled]" : ""));
 		}
 		return names;
 	}

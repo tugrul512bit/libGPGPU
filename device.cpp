@@ -26,7 +26,7 @@ namespace GPGPU_LIB
 
 			if (sharesRAM)
 			{
-				name += "[direct access to RAM]";
+				name += "[has direct access to RAM]";
 			}
 
 			std::string clVer = device.getInfo<CL_DEVICE_OPENCL_C_VERSION>(&op);
