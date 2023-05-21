@@ -12,6 +12,7 @@
 #include <vector>
 namespace GPGPU
 {
+	// an object for managing devices, kernels, worker cpu threads, load-balancing and creating/using parameters
 	struct Computer
 	{
 
@@ -39,15 +40,33 @@ namespace GPGPU
 
 		*/
 	public:
+		/*
+		deviceSelection: selects type of devices to be queried. DEVICE_GPUS, DEVICE_CPUS, DEVICE_ACCS, DEVICE_ALL
+		selectionIndex >= 0: selects single device from queried device list by index
+		selectionIndex == -1 (DEVICE_SELECTION_ALL):  selects all devices from query list
+		clonesPerDevice: number of times each physical device is duplicated in worker thread array to: overlap I/O to gain more performance, higher load-balancing quality
+		CPU device is not cloned and is taken few of its threads to be dedicated for controling other devices fast. 
+		If there are 4 GPU devices, then a 24-thread CPU is used as a 20-thread CPU by OpenCL's device fission feature and 4 threads serve the GPUs efficiently.
+		*/
 		Computer(int deviceSelection, int selectionIndex = DEVICE_SELECTION_ALL, int clonesPerDevice = 1);
 
+		// returns number of queried devices (sum of devices from all platforms)
 		int getNumDevices();
 
+		/* compiles kernel code for given kernel name(that needs to be same as the function name in the kernel code) for all devices
+		* not thread-safe between multiple Computer objects
+		*/
 		void compile(std::string kernelCode, std::string kernelName);
 
-		// isInput=true ==> makes this an input parameter of kernels when attached to them (each thread reads its own region)
-		// isOutput=true ==> makes this an output parameter of kernels when attached to them (each thread writes its own region)
-		// isInputWithAllElements=true ==> whole buffer is read instead of thread's own region
+		/* 
+		parameterName: parameter's name that is used when binding to kernel by setKernelParameter() or by method chaining ( computer.compute(  a.next(b).next(c), "kernelName",..   )  )
+		numElements: number of elements with selected type (template parameter such as int, uint, int8_t, etc)
+		numElementsPerThread: number of elements with selected type accessed by each work-item / gpu-thread / smallest work unit in OpenCL
+				total number of global threads (work-items) to run = numElements / numElementsPerThread
+		isInput = true ==> this parameter's host data is copied to devices before kernel is run (each device gets its own region unless isInputWithAllElements=true)
+		isOutput=true ==> this parameter's devices' data are copied to host after kernel is run (each device copies its own regio)
+		isInputWithAllElements=true ==> whole buffer is read instead of thread's own region when isInput=true. This is useful when all devices need a copy of whole array.
+		*/
 		template<typename T>
 		HostParameter createHostParameter(std::string parameterName, size_t numElements, size_t numElementsPerThread, bool isInput, bool isOutput, bool isInputWithAllElements)
 		{
@@ -61,12 +80,14 @@ namespace GPGPU
 		// binds a parameter to a kernel at parameterPosition-th position
 		void setKernelParameter(std::string kernelName, std::string parameterName, int parameterPosition);
 
-		// applies load-balancing inside each call
+		// applies load-balancing inside each call (better for uneven workloads per work-item)
 		void runFineGrainedLoadBalancing(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize);
 
-		// applies load-balancing between calls
+		// applies load-balancing between calls (better for even workloads per work-item)
 		void run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads);
 
+		// works same as run with default parameters of fineGrainedLoadBalancing = false and fineGrainSize = 0
+		// works same as runFineGrainedLoadBalancing with fineGrainedLoadBalancing = true (which sets fineGrainSize = numLocalThreads that may not be optimal for performance for too high global threads)
 		void compute(
 			GPGPU::HostParameter prm,
 			std::string kernelName,
@@ -76,6 +97,7 @@ namespace GPGPU
 			bool fineGrainedLoadBalancing = false,
 			size_t fineGrainSize = 0);
 
+		// returns list of device names with their opencl version support
 		std::vector<std::string> deviceNames();
 	};
 }

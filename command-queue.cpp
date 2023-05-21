@@ -17,23 +17,6 @@ namespace GPGPU_LIB
 		}
 	}
 
-	void CommandQueue::copyFromParameter(Parameter& prm, const size_t nElements, const size_t startIndex)
-	{
-		cl_int op = queue.enqueueReadBuffer(prm.buffer, CL_FALSE, startIndex * prm.elementSize, nElements * prm.elementSize, prm.hostPrm.quickPtr);
-		if (op != CL_SUCCESS)
-		{
-			throw std::invalid_argument(std::string("enqueueReadBuffer error: ") + getErrorString(op));
-		}
-	}
-
-	void CommandQueue::copyToParameter(Parameter& prm, const size_t nElements, const size_t startIndex)
-	{
-		cl_int op = queue.enqueueWriteBuffer(prm.buffer, CL_FALSE, startIndex * prm.elementSize, nElements * prm.elementSize, prm.hostPrm.quickPtr);
-		if (op != CL_SUCCESS)
-		{
-			throw std::invalid_argument(std::string("enqueueWriteBuffer-2 error: ") + getErrorString(op));
-		}
-	}
 
 
 	void CommandQueue::setPrm(Kernel& kernel, Parameter& prm, int idx)

@@ -7,10 +7,12 @@
 namespace GPGPU
 {
 	//RAII style benchmark utility
-
 	class Bench
 	{
 	public:
+		/* constructor starts measuring time, destructor stops measurement
+			then the time passed in nanoseconds is written to targetPtr's pointed size_t variable
+		*/
 		Bench(size_t* targetPtr);
 
 		~Bench();

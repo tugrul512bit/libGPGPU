@@ -8,6 +8,7 @@
 #include "device.h"
 namespace GPGPU_LIB
 {
+	// wrapper for opencl context. also holds device object
 	struct Context
 	{
 		cl::Context context;

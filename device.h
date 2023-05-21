@@ -7,6 +7,7 @@
 #include<iostream>
 namespace GPGPU_LIB
 {
+	// wrapper for opencl device object with some queried device specs
 	struct Device
 	{
 		int id;

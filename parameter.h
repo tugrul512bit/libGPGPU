@@ -8,6 +8,7 @@
 
 #include <memory>
 
+// forward-declaring for friendship because only friends have access to private parts
 namespace GPGPU_LIB
 {
 	struct Parameter;
@@ -34,6 +35,7 @@ namespace GPGPU
 		std::shared_ptr<int8_t> ptr;
 		std::vector<std::string> prmList;
 		// points to 4096-aligned region, has a size of multiple of 4096 bytes (for zero-copy access from CPU, iGPU)
+		// todo: also make the copies multiple of 4096 bytes (if that is the last chunk of parameter to copy [i.e. last device to run it] )
 		int8_t* quickPtr;
 		int8_t* quickPtrVal;
 		bool readOp;
