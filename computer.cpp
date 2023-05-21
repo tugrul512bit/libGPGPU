@@ -2,7 +2,7 @@
 
 namespace GPGPU
 {
-	Computer::Computer(int deviceSelection, int selectionIndex, int clonesPerDevice)
+	Computer::Computer(int deviceSelection, int selectionIndex, int clonesPerDevice, bool giveDirectRamAccessToCPU)
 	{
 
 		std::vector<GPGPU_LIB::Device> allGPUs = platform.getDevices(CL_DEVICE_TYPE_GPU);
@@ -15,14 +15,28 @@ namespace GPGPU
 		if (deviceSelection & DEVICE_GPUS)
 		{
 			for (int i = 0; i < allGPUs.size(); i++)
+			{
+				// if this device shares RAM but user gives priority to CPU instead, then remove the direct-access feature from this device
+				if (giveDirectRamAccessToCPU && allGPUs[i].sharesRAM)
+				{
+					allGPUs[i].sharesRAM = false;
+				}
 				allDevices.push_back(allGPUs[i]);
+			}
 		}
 
 		if (deviceSelection & DEVICE_ACCS)
 		{
 
 			for (int i = 0; i < allACCs.size(); i++)
+			{
+				// if this device shares RAM but user gives priority to CPU instead, then remove the direct-access feature from this device
+				if (giveDirectRamAccessToCPU && allACCs[i].sharesRAM)
+				{
+					allACCs[i].sharesRAM = false;
+				}
 				allDevices.push_back(allACCs[i]);
+			}
 		}
 
 		const int nOtherDevices = allDevices.size();
@@ -32,6 +46,11 @@ namespace GPGPU
 		{
 			for (int i = 0; i < allCPUs.size(); i++)
 			{
+				// if this CPU device shares RAM but user gives priority to GPU/ACC instead, then remove the direct-access feature from this CPU device
+				if (!giveDirectRamAccessToCPU && allCPUs[i].sharesRAM)
+				{
+					allCPUs[i].sharesRAM = false;
+				}
 				allDevices.push_back(allCPUs[i]);
 			}
 
@@ -178,7 +197,7 @@ namespace GPGPU
 	}
 
 	// applies load-balancing between calls
-	void Computer::run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads)
+	std::vector<double> Computer::run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads)
 	{
 		const int n = workers.size();
 		std::vector<double> nano(n);
@@ -344,12 +363,28 @@ namespace GPGPU
 			workers[i]->run(kernelName, offsetElement, offsets[i], ranges[i], numLocalThreads);
 		}
 
+
+		// do some work while gpus are working independently
 		oldLoadBalnc.push_back(avg);
+		double norm = 0.0;
+		
+		for (int i = 0; i < n; i++)
+		{
+			nano[i] = ranges[i];
+			norm += ranges[i];
+		}
+
+		for (int i = 0; i < n; i++)
+		{
+			nano[i] /= norm;
+		}
 
 		for (int i = 0; i < n; i++)
 		{
 			workers[i]->waitAllTasks();
 		}
+
+		return nano;
 	}
 
 	void Computer::compute(

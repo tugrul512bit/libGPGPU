@@ -45,10 +45,14 @@ namespace GPGPU
 		selectionIndex >= 0: selects single device from queried device list by index
 		selectionIndex == -1 (DEVICE_SELECTION_ALL):  selects all devices from query list
 		clonesPerDevice: number of times each physical device is duplicated in worker thread array to: overlap I/O to gain more performance, higher load-balancing quality
-		CPU device is not cloned and is taken few of its threads to be dedicated for controling other devices fast. 
-		If there are 4 GPU devices, then a 24-thread CPU is used as a 20-thread CPU by OpenCL's device fission feature and 4 threads serve the GPUs efficiently.
+			CPU device is not cloned and is taken few of its threads to be dedicated for controling other devices fast. 
+			If there are 4 GPU devices, then a 24-thread CPU is used as a 20-thread CPU by OpenCL's device fission feature and 4 threads serve the GPUs efficiently.
+		giveDirectRamAccessToCPU: OpenCL spec does not give permission to iGPU + CPU map/unmap on same host pointer simultaneously. So one has to pick iGPU or CPU to have direct-access (zero-copy) to RAM during computations.
+			true = CPU gets direct RAM access
+			false = iGPU gets direct RAM access
+			the other one works same as a discrete device
 		*/
-		Computer(int deviceSelection, int selectionIndex = DEVICE_SELECTION_ALL, int clonesPerDevice = 1);
+		Computer(int deviceSelection, int selectionIndex = DEVICE_SELECTION_ALL, int clonesPerDevice = 1, bool giveDirectRamAccessToCPU=true);
 
 		// returns number of queried devices (sum of devices from all platforms)
 		int getNumDevices();
@@ -84,8 +88,11 @@ namespace GPGPU
 		// applies load-balancing inside each call (better for uneven workloads per work-item)
 		void runFineGrainedLoadBalancing(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize);
 
-		// applies load-balancing between calls (better for even workloads per work-item)
-		void run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads);
+		/*
+			applies load - balancing between calls(better for even workloads per work - item)
+			returns workload ratios of devices (on the same order their names appear on deviceNames())
+		*/
+		std::vector<double> run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads);
 
 		// works same as run with default parameters of fineGrainedLoadBalancing = false and fineGrainSize = 0
 		// works same as runFineGrainedLoadBalancing with fineGrainedLoadBalancing = true (which sets fineGrainSize = numLocalThreads that may not be optimal for performance for too high global threads)

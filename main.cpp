@@ -14,16 +14,19 @@ int main()
 {
     try
     {
-        constexpr size_t n = 1024 * 1024;
+        constexpr size_t n = 1024 * 1024 * 16;
         int clonesPerDevice = 1;
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL);
         GPGPU_LIB::PlatformManager man;
-        man.printPlatforms();
+
         auto deviceNames = computer.deviceNames();
         for (auto d : deviceNames)
         {
             std::cout << d << std::endl;
         }
+
+        std::cout << "-------------------------------------------" << std::endl;
+        std::cout << "Starting compilation of kernel..." << std::endl;
 
         computer.compile(std::string(R"(
                 #define n )") + std::to_string(n) + std::string(R"(
@@ -42,6 +45,10 @@ int main()
                         }
                     }
            )"), "add1ToEveryElementBut4ElementsPerThread");
+
+
+        std::cout << "-------------------------------------------" << std::endl;
+        std::cout << "Starting allocation of host buffer..." << std::endl;
 
         // create parameters of kernel (also allocated in each device)
         bool isAinput = true;
@@ -64,17 +71,28 @@ int main()
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
         computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
 
+        int repeat = 1000;
+        std::cout << "-------------------------------------------" << std::endl;
+        std::cout << "Starting computation for "<< repeat <<" times..." << std::endl;
+
         // copies input elements (a) to devices, runs kernel on devices, copies output elements to RAM (b), uses n/4 total threads distributed to devices, 256 threads per work-group in devices
         // faster devices are given more threads automatically (after every call to run method)
         size_t nano;
+        
+        std::vector<double> workloadRatios;
         {
             GPGPU::Bench bench(&nano);
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < repeat; i++)
             {
-                computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
+                workloadRatios = computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
             }
         }
         std::cout << nano / 1000000000.0 << " seconds" << std::endl;
+        std::cout << n*((repeat * (sizeof(int)*2 ) / (nano / 1000000000.0))/1000000000.0) << " GB/s processing speed (total bandwidth on both directions is twice this amount)" << std::endl;
+        for (int i = 0; i < deviceNames.size(); i++)
+        {
+            std::cout << deviceNames[i] << " has workload ratio of: " << workloadRatios[i] << std::endl;
+        }
 
         // check output array
         for (int i = 0; i < n; i++)
