@@ -73,7 +73,9 @@ namespace GPGPU_LIB
 						{
 							throw std::invalid_argument(std::string("getInfo CL_DEVICE_HOST_UNIFIED_MEMORY error: ") + getErrorString(op));
 						}
-
+						// debugging
+						//sharesRAM = false;
+						// 
 						// if there are other devices too, leave some threads for their control
 						if ((nOtherDevices > 0) && (CL_DEVICE_TYPE_CPU == typeOfDevice))
 						{
@@ -87,7 +89,7 @@ namespace GPGPU_LIB
 							}
 						}
 
-						Device dev(devicesTmp[j], countId++, (CL_DEVICE_TYPE_CPU == typeOfDevice) || sharesRAM, isCPU);
+						Device dev(devicesTmp[j], countId++,  (CL_DEVICE_TYPE_CPU == typeOfDevice) || sharesRAM,  isCPU);
 
 						devices.push_back(dev);
 					}

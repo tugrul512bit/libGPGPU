@@ -70,6 +70,9 @@ namespace GPGPU_LIB
 			elementsPerThread(hostParameter.elementsPerThr)
 		{
 			bool sharesRAM = con.device.sharesRAM;
+
+
+
 			buffer = ((hostParameter.name == "") ? cl::Buffer() : cl::Buffer(con.context,
 
 				(sharesRAM ? CL_MEM_USE_HOST_PTR : 0) |

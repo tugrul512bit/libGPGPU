@@ -17,7 +17,8 @@ int main()
         constexpr size_t n = 1024 * 1024;
         int clonesPerDevice = 1;
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL);
-        
+        GPGPU_LIB::PlatformManager man;
+        man.printPlatforms();
         auto deviceNames = computer.deviceNames();
         for (auto d : deviceNames)
         {
@@ -65,9 +66,15 @@ int main()
 
         // copies input elements (a) to devices, runs kernel on devices, copies output elements to RAM (b), uses n/4 total threads distributed to devices, 256 threads per work-group in devices
         // faster devices are given more threads automatically (after every call to run method)
-        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
-        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // balancing more
-        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // slowly converging to optimum balance where total computation time is minimized
+        size_t nano;
+        {
+            GPGPU::Bench bench(&nano);
+            for (int i = 0; i < 1000; i++)
+            {
+                computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
+            }
+        }
+        std::cout << nano / 1000000000.0 << " seconds" << std::endl;
 
         // check output array
         for (int i = 0; i < n; i++)

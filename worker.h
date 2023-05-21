@@ -25,7 +25,7 @@ namespace GPGPU_LIB
 
 		bool working;
 		bool currentWorkComplete;
-		double nano;
+
 		std::map<std::string, double> benchmarks;
 		std::thread workerThread;
 		Worker(Device dev);

@@ -181,6 +181,7 @@ namespace GPGPU
 	void Computer::run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads)
 	{
 		const int n = workers.size();
+		std::vector<double> nano(n);
 		if (loadBalances.find(kernelName) == loadBalances.end())
 		{
 			loadBalances[kernelName] = std::vector<double>(n, 1.0);
@@ -206,21 +207,24 @@ namespace GPGPU
 		for (int i = 0; i < n; i++)
 		{
 			std::unique_lock<std::mutex> lock(workers[i]->commonSync);
-			workers[i]->nano = workers[i]->benchmarks[kernelName];
-			workers[i]->nano = ranges[i] / workers[i]->nano; // capability = run_size / run_time
-			workers[i]->nano = (avg[i] + (workers[i]->nano * 4)) / (nlb + 4);
-			totalLoad += workers[i]->nano;
+			nano[i] = workers[i]->benchmarks[kernelName];
+
 		}
 
-
+		for (int i = 0; i < n; i++)
+		{
+			nano[i] = ranges[i] / nano[i]; // capability = run_size / run_time
+			nano[i] = (avg[i] + (nano[i] * 4)) / (nlb + 4);
+			totalLoad += nano[i];
+		}
 
 
 
 		// normalized loads
 		for (int i = 0; i < n; i++)
 		{
-			avg[i] = workers[i]->nano;
-			selectedKernelLB[i] = workers[i]->nano / totalLoad;
+			avg[i] = nano[i];
+			selectedKernelLB[i] = nano[i] / totalLoad;
 		}
 
 
@@ -292,6 +296,10 @@ namespace GPGPU
 				}
 			}
 		}
+
+
+
+
 		for (int i = 0; i < n; i++)
 			newTotal += ranges[i];
 
@@ -302,6 +310,11 @@ namespace GPGPU
 			err += std::string(" \n  threads need to be added =  ") + std::to_string(toBeAdded);
 			err += std::string(" \n  total threads distributed =  ") + std::to_string(newTotal);
 			err += std::string(" \n  global threads required =  ") + std::to_string(numGlobalThreads);
+			for (int i = 0; i < n; i++)
+			{
+				err += std::string("\n performance of device = ");
+				err += std::to_string(workers[i]->benchmarks[kernelName]);
+			}
 			throw std::invalid_argument(err);
 		}
 

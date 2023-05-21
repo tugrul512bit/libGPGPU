@@ -5,7 +5,7 @@ namespace GPGPU_LIB
 
 		Worker::Worker(Device dev) :working(true), currentWorkComplete(true)
 		{
-			nano = 1;
+
 			context = Context(dev);
 			queue = CommandQueue(context);
 
@@ -122,9 +122,9 @@ namespace GPGPU_LIB
 				{
 
 					std::unique_lock<std::mutex> lock(commonSync);
-					if (task.taskType == GPGPUTask::GPGPU_TASK_COMPUTE)
+					if (task.taskType == GPGPUTask::GPGPU_TASK_COMPUTE || task.taskType == GPGPUTask::GPGPU_TASK_COMPUTE_ALL)
 						benchmarks[task.kernelName] = nanoLastCommand;
-					this->nano = nanoLastCommand;
+
 					currentWorkComplete = true;
 					isWorking = working;
 				}
