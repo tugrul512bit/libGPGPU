@@ -66,6 +66,7 @@ namespace GPGPU
 		isInput = true ==> this parameter's host data is copied to devices before kernel is run (each device gets its own region unless isInputWithAllElements=true)
 		isOutput=true ==> this parameter's devices' data are copied to host after kernel is run (each device copies its own regio)
 		isInputWithAllElements=true ==> whole buffer is read instead of thread's own region when isInput=true. This is useful when all devices need a copy of whole array.
+		!!! host parameter can only be input-only or output-only (currently) (because this lets all devices run independently without extra synchronization cost) !!!
 		*/
 		template<typename T>
 		HostParameter createHostParameter(std::string parameterName, size_t numElements, size_t numElementsPerThread, bool isInput, bool isOutput, bool isInputWithAllElements)
