@@ -125,7 +125,7 @@ namespace GPGPU_LIB
 			for (auto& e : kernel.mapParameterNameToParameter)
 			{
 
-				if (e.second.readOp)
+				if (e.second.writeOp)
 				{
 
 					cl_int op;

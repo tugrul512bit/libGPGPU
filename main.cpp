@@ -14,7 +14,7 @@ int main()
 {
     try
     {
-        constexpr size_t n = 1024 * 1024 * 16;
+        constexpr size_t n = 1024 * 1024*4;
         int clonesPerDevice = 1;
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL);
         GPGPU_LIB::PlatformManager man;
