@@ -14,8 +14,8 @@ int main()
 {
     try
     {
-        constexpr size_t n = 1024 * 1024*4;
-        int clonesPerDevice = 2;
+        constexpr size_t n = 1024*1024;
+        int clonesPerDevice = 1;
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL,GPGPU::Computer::DEVICE_SELECTION_ALL,clonesPerDevice);
         GPGPU_LIB::PlatformManager man;
 
@@ -31,20 +31,39 @@ int main()
         computer.compile(std::string(R"(
                 #define n )") + std::to_string(n) + std::string(R"(
                     
-                    
-                    // C99 code for OpenCL 1.2 [C++ for OpenCL 2.0]
-                    // every GPU thread adds one to 4 elements
-                    void kernel add1ToEveryElementBut4ElementsPerThread(global int * a, global int * b) 
+                    void kernel fmaTest(global float * a, global float * b) 
                     {
                         // global id of this thread
                         const int id = get_global_id(0);
-                        const int dataStart = id*4;
-                        for(int i=dataStart; i < dataStart + 4; i++)
+                        const int localId = id % 256;
+                        float r1=0.0f;
+                        float r2=0.0f;
+                        float r3=0.0f;
+                        float r4=0.0f;
+                        float a1=a[id];
+                        float a2=a[(id+1)%n];
+                        float a3=a[(id+2)%n];
+                        float a4=a[(id+3)%n];
+                        local float tmp[256];
+                        for(int i=0;i<n;i+=256)
                         {
-                            b[i] = a[i] + 1;
+                            tmp[localId] = a[i];
+                            barrier(CLK_LOCAL_MEM_FENCE);
+                            for(int j=0;j<256;j++)
+                            {
+                                float r0 = tmp[j];
+                                r1 = fma(a1,r0,r1);
+                                r2 = fma(a2,r0,r2);
+                                r3 = fma(a3,r0,r3);
+                                r4 = fma(a4,r0,r4);
+                            }
+                            
+                            barrier(CLK_LOCAL_MEM_FENCE);
                         }
+                        b[id] = r1+r2+r3+r4;
+                        
                     }
-           )"), "add1ToEveryElementBut4ElementsPerThread");
+           )"), "fmaTest");
 
 
         std::cout << "-------------------------------------------" << std::endl;
@@ -55,23 +74,23 @@ int main()
         bool isBinput = false;
         bool isAoutput = false;
         bool isBoutput = true;
-        bool isInputRandomAccess = false;
-        int dataElementsPerThread = 4;
-        GPGPU::HostParameter a = computer.createHostParameter<int>("a", n, dataElementsPerThread, isAinput, isAoutput, isInputRandomAccess);
-        GPGPU::HostParameter b = computer.createHostParameter<int>("b", n, dataElementsPerThread, isBinput, isBoutput, isInputRandomAccess);
+        bool isInputRandomAccess = true;
+        int dataElementsPerThread = 1;
+        GPGPU::HostParameter a = computer.createHostParameter<float>("a", n, dataElementsPerThread, isAinput, isAoutput, isInputRandomAccess);
+        GPGPU::HostParameter b = computer.createHostParameter<float>("b", n, dataElementsPerThread, isBinput, isBoutput, false);
 
         // init elements of parameters
         for (int i = 0; i < n; i++)
         {
-            a.access<int>(i) = i;
-            b.access<int>(i) = 0;
+            a.access<float>(i) = i;
+            b.access<float>(i) = 0;
         }
        
         // set kernel parameters (0: first parameter of kernel, 1: second parameter of kernel)
-        computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
-        computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
+        computer.setKernelParameter("fmaTest", "a", 0);
+        computer.setKernelParameter("fmaTest", "b", 1);
 
-        int repeat = 1000;
+        int repeat = 100;
         std::cout << "-------------------------------------------" << std::endl;
         std::cout << "Starting computation for "<< repeat <<" times..." << std::endl;
 
@@ -84,23 +103,16 @@ int main()
             GPGPU::Bench bench(&nano);
             for (int i = 0; i < repeat; i++)
             {
-                workloadRatios = computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
+                workloadRatios = computer.run("fmaTest", 0, n , 256); // n/4 number of total threads, 256 local threads per work group
             }
         }
         std::cout << nano / 1000000000.0 << " seconds" << std::endl;
-        std::cout << n*((repeat * (sizeof(int)*2 ) / (nano / 1000000000.0))/1000000000.0) << " GB/s processing speed (total bandwidth on both directions is twice this amount)" << std::endl;
+        std::cout << (((repeat *(double) n * (double)n * 8 ) / (nano / 1000000000.0))/1000000000.0) << " gflops" << std::endl;
         for (int i = 0; i < deviceNames.size(); i++)
         {
             std::cout << deviceNames[i] << " has workload ratio of: " << workloadRatios[i] << std::endl;
         }
 
-        // check output array
-        for (int i = 0; i < n; i++)
-        {
-            if (a.access<int>(i) + 1 != b.access<int>(i))
-                throw std::invalid_argument("error: opencl did not work!");
-        }
-        std::cout << "ok" << std::endl;
     }
     catch (std::exception& ex)
     {
