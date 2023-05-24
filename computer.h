@@ -86,7 +86,7 @@ namespace GPGPU
 		void setKernelParameter(std::string kernelName, std::string parameterName, int parameterPosition);
 
 		// applies load-balancing inside each call (better for uneven workloads per work-item)
-		void runFineGrainedLoadBalancing(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize);
+		std::vector<double>  runFineGrainedLoadBalancing(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize);
 
 		/*
 			applies load - balancing between calls(better for even workloads per work - item)
@@ -96,7 +96,7 @@ namespace GPGPU
 
 		// works same as run with default parameters of fineGrainedLoadBalancing = false and fineGrainSize = 0
 		// works same as runFineGrainedLoadBalancing with fineGrainedLoadBalancing = true (which sets fineGrainSize = numLocalThreads that may not be optimal for performance for too high global threads)
-		void compute(
+		std::vector<double> compute(
 			GPGPU::HostParameter prm,
 			std::string kernelName,
 			size_t offsetElement,

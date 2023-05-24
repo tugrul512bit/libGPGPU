@@ -31,10 +31,11 @@ namespace GPGPU_LIB
 		void Worker::work()
 		{
 			bool isWorking = true;
-			size_t nanoLastCommand = 1;
+			size_t nanoLastCommand = 0;
+			size_t workLastCommand = 0;
 			while (isWorking)
 			{
-				nanoLastCommand = 1;
+				
 
 				GPGPUTask task = taskQueue.pop();
 
@@ -71,13 +72,14 @@ namespace GPGPU_LIB
 
 				case (GPGPUTask::GPGPU_TASK_COMPUTE):
 				{
-
+					workLastCommand = 0;
 					{
 						GPGPU::Bench bench(&nanoLastCommand);
 						Kernel& kernel = mapKernelNameToKernel[task.kernelName];
 						task.comQuePtr->copyInputsOfKernel(kernel, task.globalOffset, task.offset, task.globalSize);
 						task.comQuePtr->run(kernel, task.globalOffset, task.globalSize, task.localSize, task.offset);
 						task.comQuePtr->copyOutputsOfKernel(kernel, task.globalOffset, task.offset, task.globalSize);
+						workLastCommand += task.globalSize;
 
 						task.comQuePtr->sync();
 					}
@@ -87,7 +89,7 @@ namespace GPGPU_LIB
 
 				case (GPGPUTask::GPGPU_TASK_COMPUTE_ALL):
 				{
-
+					workLastCommand = 0;
 					{
 						GPGPU::Bench bench(&nanoLastCommand);
 						GPGPUTask taskNew;
@@ -97,10 +99,11 @@ namespace GPGPU_LIB
 							task.comQuePtr->copyInputsOfKernel(kernel, taskNew.globalOffset, taskNew.offset, taskNew.globalSize);
 							task.comQuePtr->run(kernel, taskNew.globalOffset, taskNew.globalSize, taskNew.localSize, taskNew.offset);
 							task.comQuePtr->copyOutputsOfKernel(kernel, taskNew.globalOffset, taskNew.offset, taskNew.globalSize);
+							workLastCommand += taskNew.globalSize; 
 							task.comQuePtr->sync();
 
 						}
-
+						
 					}
 
 					break;
@@ -123,8 +126,10 @@ namespace GPGPU_LIB
 
 					std::unique_lock<std::mutex> lock(commonSync);
 					if (task.taskType == GPGPUTask::GPGPU_TASK_COMPUTE || task.taskType == GPGPUTask::GPGPU_TASK_COMPUTE_ALL)
+					{
 						benchmarks[task.kernelName] = nanoLastCommand;
-
+						works[task.kernelName] = workLastCommand; 
+					}
 					currentWorkComplete = true;
 					isWorking = working;
 				}
@@ -159,12 +164,13 @@ namespace GPGPU_LIB
 			}
 		}
 
-		void Worker::runTasks(std::shared_ptr<GPGPUTaskQueue> taskQueueShared)
+		void Worker::runTasks(std::shared_ptr<GPGPUTaskQueue> taskQueueShared, std::string kernelName)
 		{
 			GPGPUTask task;
 			task.taskType = GPGPUTask::GPGPU_TASK_COMPUTE_ALL;
 			task.sharedTaskQueue = taskQueueShared;
 			task.comQuePtr = &queue;
+			task.kernelName = kernelName;
 			taskQueue.push(task);
 		}
 

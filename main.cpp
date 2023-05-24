@@ -1,9 +1,5 @@
-// a program that adds 1 to all elements of an array
-// each GPU/Accelerator/CPU thread computes 4 element
-// both input and output arrays are integer arrays
-// 256k threads compute 1M elements
-
 #include <iostream>
+#include <fstream>
 
 // uncomment this if you use opencl v2.0 or v3.0 devices. By default, opencl v1.2 devices are queried. 
 // must be defined before including "gpgpu.hpp"
@@ -14,8 +10,8 @@ int main()
 {
     try
     {
-        constexpr size_t n = 1024*1024;
-        int clonesPerDevice = 1;
+        constexpr size_t n = 1024*16;
+        int clonesPerDevice = 2;
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL,GPGPU::Computer::DEVICE_SELECTION_ALL,clonesPerDevice);
         GPGPU_LIB::PlatformManager man;
 
@@ -29,66 +25,76 @@ int main()
         std::cout << "Starting compilation of kernel..." << std::endl;
 
         computer.compile(std::string(R"(
+
+                // algorithm from: https://github.com/sessamekesh/IndigoCS_Mandelbrot/blob/master/main.cpp
+
                 #define n )") + std::to_string(n) + std::string(R"(
                     
-                    void kernel fmaTest(global float * a, global float * b) 
+
+                    int findMandelbrot(float cr, float ci, int max_iterations)
+                    {
+	                    int i = 0;
+	                    float zr = 0.0f, zi = 0.0f;
+	                    while (i < max_iterations && zr * zr + zi * zi < 4.0f)
+	                    {
+		                    float temp = zr * zr - zi * zi + cr;
+		                    zi = 2.0f * zr * zi + ci;
+		                    zr = temp;
+		                    i++;
+	                    }
+
+	                    return i;
+                    }
+
+                    float mapToReal(int x, int imageWidth, float minR, float maxR)
+                    {
+	                    float range = maxR - minR;
+	                    return x * (range / imageWidth) + minR;
+                    }
+
+                    float mapToImaginary(int y, int imageHeight, float minI, float maxI)
+                    {
+	                    float range = maxI - minI;
+	                    return y * (range / imageHeight) + minI;
+                    }
+
+                    void kernel mandelbrot(global unsigned char * b) 
                     {
                         // global id of this thread
                         const int id = get_global_id(0);
-                        const int localId = id % 256;
-                        float r1=0.0f;
-                        float r2=0.0f;
-                        float r3=0.0f;
-                        float r4=0.0f;
-                        float a1=a[id];
-                        float a2=a[(id+1)%n];
-                        float a3=a[(id+2)%n];
-                        float a4=a[(id+3)%n];
-                        local float tmp[256];
-                        for(int i=0;i<n;i+=256)
-                        {
-                            tmp[localId] = a[i];
-                            barrier(CLK_LOCAL_MEM_FENCE);
-                            for(int j=0;j<256;j++)
-                            {
-                                float r0 = tmp[j];
-                                r1 = fma(a1,r0,r1);
-                                r2 = fma(a2,r0,r2);
-                                r3 = fma(a3,r0,r3);
-                                r4 = fma(a4,r0,r4);
-                            }
-                            
-                            barrier(CLK_LOCAL_MEM_FENCE);
-                        }
-                        b[id] = r1+r2+r3+r4;
+                        const int x = id % n;
+                        const int y = id / n;
+			            float cr = mapToReal(x, n, -1.5f, 0.7f);
+			            float ci = mapToImaginary(y, n, -1.0f, 1.0f);
+
+
+			            int mn = findMandelbrot(cr, ci, 50);
+
+                        b[id] = mn;
                         
                     }
-           )"), "fmaTest");
+           )"), "mandelbrot");
 
 
         std::cout << "-------------------------------------------" << std::endl;
         std::cout << "Starting allocation of host buffer..." << std::endl;
 
         // create parameters of kernel (also allocated in each device)
-        bool isAinput = true;
+
         bool isBinput = false;
-        bool isAoutput = false;
         bool isBoutput = true;
-        bool isInputRandomAccess = true;
         int dataElementsPerThread = 1;
-        GPGPU::HostParameter a = computer.createHostParameter<float>("a", n, dataElementsPerThread, isAinput, isAoutput, isInputRandomAccess);
-        GPGPU::HostParameter b = computer.createHostParameter<float>("b", n, dataElementsPerThread, isBinput, isBoutput, false);
+
+        GPGPU::HostParameter b = computer.createHostParameter<unsigned char>("b", n*n, dataElementsPerThread, isBinput, isBoutput, false);
 
         // init elements of parameters
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < n*n; i++)
         {
-            a.access<float>(i) = i;
-            b.access<float>(i) = 0;
+            b.access<unsigned char>(i) = 0;
         }
        
         // set kernel parameters (0: first parameter of kernel, 1: second parameter of kernel)
-        computer.setKernelParameter("fmaTest", "a", 0);
-        computer.setKernelParameter("fmaTest", "b", 1);
+
 
         int repeat = 100;
         std::cout << "-------------------------------------------" << std::endl;
@@ -103,15 +109,42 @@ int main()
             GPGPU::Bench bench(&nano);
             for (int i = 0; i < repeat; i++)
             {
-                workloadRatios = computer.run("fmaTest", 0, n , 256); // n/4 number of total threads, 256 local threads per work group
+                std::cout << i << std::endl;
+                workloadRatios = computer.compute(b,"mandelbrot", 0, n*n , 256,true,1024*1024); // n/4 number of total threads, 256 local threads per work group
             }
         }
         std::cout << nano / 1000000000.0 << " seconds" << std::endl;
-        std::cout << (((repeat *(double) n * (double)n * 8 ) / (nano / 1000000000.0))/1000000000.0) << " gflops" << std::endl;
+
+        size_t totalIter = 0;
+        for (int i = 0; i < n * n; i++)
+        {
+            totalIter += b.access<unsigned char>(i);
+        }
+        totalIter *= 10;
+        totalIter *= repeat;
+
+        std::cout << (((totalIter ) / (nano / 1000000000.0))/1000000000.0) << " gflops" << std::endl;
         for (int i = 0; i < deviceNames.size(); i++)
         {
             std::cout << deviceNames[i] << " has workload ratio of: " << workloadRatios[i] << std::endl;
         }
+
+
+        std::cout << "Creating 2GB ppm file. This may take a few minutes." << std::endl;
+        std::ofstream fout("output_image.ppm");
+        fout << "P3" << std::endl; 
+        fout << n << " " << n << std::endl; 
+        fout << "255" << std::endl; 
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
+                fout << (int) b.access<unsigned char>(i*n+j) << " " << (int)b.access<unsigned char>(i * n + j) << " " << (int)b.access<unsigned char>(i * n + j) << " ";
+            }
+            fout << std::endl;
+        }
+        fout.close();
 
     }
     catch (std::exception& ex)

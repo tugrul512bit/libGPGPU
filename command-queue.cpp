@@ -115,7 +115,10 @@ namespace GPGPU_LIB
 					);
 					if (op != CL_SUCCESS)
 					{
-						throw std::invalid_argument(std::string("enqueueWriteBuffer-1 error: ") + getErrorString(op));
+						std::string err1 = std::string("global offset = ") + std::to_string(globalOffset) + "\n";
+						err1 += std::string("offset = ") + std::to_string(offsetElement) + "\n";
+						err1 += std::string("num element = ") + std::to_string(numElement) + "\n";
+						throw std::invalid_argument(std::string("enqueueWriteBuffer-1 error: ") + getErrorString(op)+err1);
 					}
 				}
 			}

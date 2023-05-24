@@ -163,8 +163,10 @@ namespace GPGPU
 	}
 
 	// applies load-balancing inside each call
-	void Computer::runFineGrainedLoadBalancing(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize)
+	std::vector<double> Computer::runFineGrainedLoadBalancing(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize)
 	{
+		std::vector<double> performancesOfDevices(workers.size());
+
 		//std::cout << "debug 2.5" << std::endl;
 		std::shared_ptr<GPGPU_LIB::GPGPUTaskQueue> taskQueue = std::make_shared<GPGPU_LIB::GPGPUTaskQueue>();
 
@@ -191,7 +193,7 @@ namespace GPGPU
 			GPGPU_LIB::GPGPUTask task;
 			task.taskType = GPGPU_LIB::GPGPUTask::GPGPU_TASK_NULL;
 			taskQueue->push(task);
-			workers[i]->runTasks(taskQueue);
+			workers[i]->runTasks(taskQueue,kernelName);
 		}
 
 		//std::cout << "debug 2" << std::endl;
@@ -202,6 +204,21 @@ namespace GPGPU
 		}
 		//std::cout << "debug 3" << std::endl;
 
+		double norm = 0.0;
+
+		for (int i = 0; i < workers.size(); i++)
+		{
+			std::unique_lock<std::mutex> lock(workers[i]->commonSync);
+	
+			performancesOfDevices[i] = workers[i]->works[kernelName]/workers[i]->benchmarks[kernelName];
+			norm += performancesOfDevices[i]; 
+		}
+
+		for (int i = 0; i < workers.size(); i++)
+		{
+			performancesOfDevices[i] /= norm; 
+		}
+		return performancesOfDevices;
 	}
 
 	// applies load-balancing between calls
@@ -395,7 +412,7 @@ namespace GPGPU
 		return nano;
 	}
 
-	void Computer::compute(
+	std::vector<double> Computer::compute(
 		GPGPU::HostParameter prm,
 		std::string kernelName,
 		size_t offsetElement,
@@ -404,7 +421,7 @@ namespace GPGPU
 		bool fineGrainedLoadBalancing,
 		size_t fineGrainSize)
 	{
-
+		std::vector<double> performancesOfDevices;
 		const int k = prm.prmList.size();
 		for (int i = 0; i < k; i++)
 		{
@@ -412,10 +429,10 @@ namespace GPGPU
 		}
 
 		if (fineGrainedLoadBalancing)
-			runFineGrainedLoadBalancing(kernelName, offsetElement, numGlobalThreads, numLocalThreads, fineGrainSize == 0 ? numLocalThreads : fineGrainSize);
+			performancesOfDevices=runFineGrainedLoadBalancing(kernelName, offsetElement, numGlobalThreads, numLocalThreads, fineGrainSize == 0 ? numLocalThreads : fineGrainSize);
 		else
-			run(kernelName, offsetElement, numGlobalThreads, numLocalThreads);
-
+			performancesOfDevices=run(kernelName, offsetElement, numGlobalThreads, numLocalThreads);
+		return performancesOfDevices;
 	}
 
 	std::vector<std::string> Computer::deviceNames()

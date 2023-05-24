@@ -27,6 +27,7 @@ namespace GPGPU_LIB
 		bool currentWorkComplete;
 
 		std::map<std::string, double> benchmarks;
+		std::map<std::string, size_t> works;
 		std::thread workerThread;
 		Worker(Device dev);
 
@@ -34,7 +35,7 @@ namespace GPGPU_LIB
 
 		void stop();
 
-		void runTasks(std::shared_ptr<GPGPUTaskQueue> taskQueueShared);
+		void runTasks(std::shared_ptr<GPGPUTaskQueue> taskQueueShared, std::string kernelName);
 
 		void compile(std::string kernel, std::string kernelName, std::mutex* compileLock);
 
