@@ -92,16 +92,13 @@ int main()
         {
             b.access<unsigned char>(i) = 0;
         }
-       
-        // set kernel parameters (0: first parameter of kernel, 1: second parameter of kernel)
 
 
         int repeat = 100;
         std::cout << "-------------------------------------------" << std::endl;
         std::cout << "Starting computation for "<< repeat <<" times..." << std::endl;
 
-        // copies input elements (a) to devices, runs kernel on devices, copies output elements to RAM (b), uses n/4 total threads distributed to devices, 256 threads per work-group in devices
-        // faster devices are given more threads automatically (after every call to run method)
+
         size_t nano;
         
         std::vector<double> workloadRatios;
@@ -110,7 +107,7 @@ int main()
             for (int i = 0; i < repeat; i++)
             {
                 std::cout << i << std::endl;
-                workloadRatios = computer.compute(b,"mandelbrot", 0, n*n , 256,true,1024*1024); // n/4 number of total threads, 256 local threads per work group
+                workloadRatios = computer.compute(b,"mandelbrot", 0, n*n , 256,true,1024*1024); // n*n total workitems, 256 local workitems, 1024*1024 load-balancing grain size
             }
         }
         std::cout << nano / 1000000000.0 << " seconds" << std::endl;
@@ -118,7 +115,7 @@ int main()
         size_t totalIter = 0;
         for (int i = 0; i < n * n; i++)
         {
-            totalIter += b.access<unsigned char>(i);
+            totalIter += 8/* from mapping functions */ + b.access<unsigned char>(i) ;
         }
         totalIter *= 10;
         totalIter *= repeat;
