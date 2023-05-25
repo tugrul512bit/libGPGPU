@@ -20,77 +20,48 @@ Dependency:
 Hello-world sample:
 
 ```C++
-// a program that adds 1 to all elements of an array, computed on all devices with a number of work-items given to them
-// each GPU/Accelerator/CPU "work-item" computes 4 element
-// both input and output arrays are integer arrays
-// 256k work-items compute 1M elements (they flow through shader-pipelines in GPUs and SIMD units in CPUs)
-
 #include <iostream>
+#include <fstream>
+
+// uncomment this if you use opencl v2.0 or v3.0 devices. By default, opencl v1.2 devices are queried. 
+// must be defined before including "gpgpu.hpp"
+//#define CL_HPP_MINIMUM_OPENCL_VERSION 200
+
 #include "gpgpu.hpp"
 int main()
 {
     try
     {
-        constexpr size_t n = 1024 * 1024;
+        const int n = 1024; // number of array elements to test
 
-        int clonesPerDevice = 1;
-        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL, GPGPU::Computer::DEVICE_SELECTION_ALL, clonesPerDevice);
+        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL); // allocate all devices for computations
 
-        computer.compile(std::string(R"(
-                #define n )") + std::to_string(n) + std::string(R"(
-                    // C99 code for OpenCL 1.2 [C++ for OpenCL 2.0]
-                    // every GPU thread adds one to 4 elements
-                    void kernel add1ToEveryElementBut4ElementsPerThread(global int * a, global int * b) 
-                    {
-                        // global id of this thread
-                        const int id = get_global_id(0);
-                        const int dataStart = id*4;
-                        for(int i=dataStart; i < dataStart + 4; i++)
-                        {
-                            b[i] = a[i] + 1;
-                        }
-                    }
-           )"), "add1ToEveryElementBut4ElementsPerThread");
+        // compile a kernel to do the adding C=A+B for all elmeents
+        computer.compile(R"(
+            kernel void vectorAdd(global float * A, global float * B, global float * C) 
+            { 
+                int id=get_global_id(0); 
+                C[id] = A[id] + B[id];
+             })", "vectorAdd");
 
-        // create parameters of kernel (also allocated in each device)
-        // a buffer can be only one of these: {input=true,output=false} (means input), {output=true,input=false} (means output), or {input=false,output=false} which means it is only accessed by device
-        bool isAinput = true; // host writes to buffer, kernel reads from buffer
-        bool isBinput = false;
-        bool isAoutput = false;
-        bool isBoutput = true; // kernel writes to buffer, host reads from buffer
-        bool isInputRandomAccess = false;
-        int dataElementsPerThread = 4;
-        GPGPU::HostParameter a = computer.createHostParameter<int>("a", n, dataElementsPerThread, isAinput, isAoutput, isInputRandomAccess);
-        GPGPU::HostParameter b = computer.createHostParameter<int>("b", n, dataElementsPerThread, isBinput, isBoutput, isInputRandomAccess);
+        // create host arrays that will be auto-copied-to/from GPUs/CPUs/Accelerators before/after kernel runs
+        auto A = computer.createHostParameter<float>("A", n, 1, true, false, false);
+        auto B = computer.createHostParameter<float>("B", n, 1, true, false, false);
+        auto C = computer.createHostParameter<float>("C", n, 1, false, true, false);
 
-        // init elements of parameters
-        for (int i = 0; i < n; i++)
-        {
-            a.access<int>(i) = i;
-            b.access<int>(i) = 0;
-        }
+        // initialize one element for testing
+        A.access<float>(400) = 3.0f;
+        B.access<float>(400) = 0.1415f;
+        C.access<float>(400) = 0.0f; // this will be PI
 
-        // set kernel parameters (0: first parameter of kernel, 1: second parameter of kernel)
-        computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
-        computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
+        // compute, uses all GPUs and other devices with load-balancing to give faster devices more job to minimize overall latency of kernel (including copy latency too)
+        computer.compute(A.next(B).next(C),"vectorAdd",0,n,64);
+        std::cout << "PI = " << C.access<float>(400) << std::endl;
 
-        // copies input elements (a) to devices, runs kernel on devices, copies output elements to RAM (b), uses n/4 total threads distributed to devices, 256 threads per work-group in devices
-        // faster devices are given more threads automatically (after every call to run method)
-        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
-        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // balancing more
-        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // slowly converging to optimum balance where total computation time is minimized
-
-        // check output array
-        for (int i = 0; i < n; i++)
-        {
-            if (a.access<int>(i) + 1 != b.access<int>(i))
-                throw std::invalid_argument("error: opencl did not work!");
-        }
-        std::cout << "ok" << std::endl;
     }
     catch (std::exception& ex)
     {
-        std::cout << ex.what() << std::endl;
+        std::cout << ex.what() << std::endl; // any error is handled here
     }
     return 0;
 }
