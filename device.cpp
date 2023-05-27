@@ -16,6 +16,15 @@ namespace GPGPU_LIB
 				throw std::invalid_argument(std::string("error: device name query") + getErrorString(op));
 			}
 
+			// trim whitespace
+			name.erase(name.begin(), std::find_if(name.begin(), name.end(), [](unsigned char ch) {
+				return !std::isspace(ch);
+				}));
+			name.erase(std::find_if(name.rbegin(), name.rend(), [](unsigned char ch) {
+				return !std::isspace(ch);
+				}).base(), name.end());
+
+			simpleName = name;
 			name += " (";
 			name += device.getInfo<CL_DEVICE_VERSION>(&op);
 			name += " )";

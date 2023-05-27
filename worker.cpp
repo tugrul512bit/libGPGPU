@@ -246,7 +246,10 @@ namespace GPGPU_LIB
 		{
 			return context.device.name;
 		}
-
+		std::string Worker::deviceNameSimple()
+		{
+			return context.device.simpleName;
+		}
 		Worker::~Worker()
 		{
 			stop();

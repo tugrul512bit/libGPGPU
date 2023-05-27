@@ -435,12 +435,15 @@ namespace GPGPU
 		return performancesOfDevices;
 	}
 
-	std::vector<std::string> Computer::deviceNames()
+	std::vector<std::string> Computer::deviceNames(bool detailed)
 	{
 		std::vector<std::string> names;
 		for (int i = 0; i < workers.size(); i++)
 		{
-			names.push_back(std::string("Device ")+std::to_string(i)+std::string(": ") + workers[i]->deviceName() + (!workers[i]->context.device.sharesRAM ? " [direct-RAM-access disabled]" : ""));
+			if(detailed)
+				names.push_back(std::string("Device ")+std::to_string(i)+std::string(": ") + workers[i]->deviceName() + (!workers[i]->context.device.sharesRAM ? " [direct-RAM-access disabled]" : ""));
+			else
+				names.push_back(workers[i]->deviceNameSimple());
 		}
 		return names;
 	}

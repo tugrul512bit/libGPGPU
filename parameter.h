@@ -90,6 +90,12 @@ namespace GPGPU
 
 		std::string getName();		
 
+		// number of bytes per element
+		const int getElementSize() const
+		{
+			return elementSize;
+		}
+
 	};
 }
 

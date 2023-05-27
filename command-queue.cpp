@@ -17,13 +17,72 @@ namespace GPGPU_LIB
 		}
 	}
 
+	template<int T>
+	constexpr void bigSwitchCase(Parameter& prm, Kernel& kernel, const int idx)
+	{
+		if (T == 1 && T == prm.hostPrm.getElementSize())
+		{
+			kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[1]>(0));
+			return;
+		}
 
+
+
+		if (T == prm.hostPrm.getElementSize())
+		{
+			kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[T]>(0));
+		}
+		else if (T > 1)
+		{
+			bigSwitchCase<T - 1>(prm, kernel, idx);
+		}
+
+		return;
+	}
+
+	template<>
+	void bigSwitchCase<1>(Parameter& prm, Kernel& kernel, const int idx)
+	{
+		if (1 == prm.hostPrm.getElementSize())
+		{
+			kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[1]>(0));
+			return;
+		}
+	}
 
 	void CommandQueue::setPrm(Kernel& kernel, Parameter& prm, int idx)
 	{
+		cl_int op = 0;
 		kernel.mapParameterNameToParameter[prm.name] = prm;
-
-		cl_int op = kernel.kernel.setArg(idx, prm.buffer);
+		if (prm.hostPrm.n == 1)
+		{
+			// scalar
+			bigSwitchCase<256>(prm,kernel,idx);
+			/*
+			switch (prm.hostPrm.elementSize)
+			{
+			case 1:							
+				kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[1]>(0));
+				break;
+			case 2:
+				kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[2]>(0));
+				break;
+			case 3:
+				kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[3]>(0));
+				break;
+			case 4:
+				kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[4]>(0));
+				break;
+			default:break;
+			}
+			*/
+		}
+		else
+		{
+			// array
+			op = kernel.kernel.setArg(idx, prm.buffer);
+		}
+		
 		if (op != CL_SUCCESS)
 		{
 			throw std::invalid_argument(std::string("setArg error: ") + getErrorString(op));

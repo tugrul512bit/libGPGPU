@@ -48,7 +48,7 @@ namespace GPGPU_LIB
 		void run(std::string kernelName, size_t globalOffset, size_t offset, size_t numGlobal, size_t numLocal);
 
 		std::string deviceName();
-
+		std::string deviceNameSimple();
 		~Worker();
 	};
 }

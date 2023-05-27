@@ -15,6 +15,7 @@ namespace GPGPU_LIB
 		bool sharesRAM;
 		bool isCPU;
 
+		std::string simpleName;
 		std::string name;
 		std::string halfFpConfig;
 		cl::Device device;

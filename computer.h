@@ -106,7 +106,7 @@ namespace GPGPU
 			size_t fineGrainSize = 0);
 
 		// returns list of device names with their opencl version support
-		std::vector<std::string> deviceNames();
+		std::vector<std::string> deviceNames(bool detailed = true);
 	};
 }
 #endif // !GPGPU_COMPUTER_LIB
