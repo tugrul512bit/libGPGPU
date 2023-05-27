@@ -7,7 +7,7 @@
 #include "context.h"
 
 #include <memory>
-
+#include <algorithm>
 // forward-declaring for friendship because only friends have access to private parts
 namespace GPGPU_LIB
 {
@@ -60,6 +60,25 @@ namespace GPGPU
 		}
 
 		HostParameter next(HostParameter prm);
+
+		template<typename T>
+		void copyDataToPtr(T * ptrPrm, size_t numElements, size_t elementOffset)
+		{
+			std::copy(
+				reinterpret_cast<T*>(quickPtr + (elementOffset * elementSize)),
+				reinterpret_cast<T*>(quickPtr + ((elementOffset + numElements) * elementSize)),
+				ptrPrm);
+		}
+
+		template<typename T>
+		void copyDataFromPtr(T* ptrPrm, size_t numElements, size_t elementOffset)
+		{
+			std::copy(
+				ptrPrm,
+				ptrPrm+numElements,
+				reinterpret_cast<T*>(quickPtr + (elementOffset * elementSize))				
+			);
+		}
 
 		std::string getName();		
 

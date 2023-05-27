@@ -39,7 +39,7 @@ namespace GPGPU
 			}
 		}
 
-		const int nOtherDevices = allDevices.size();
+		const size_t nOtherDevices = allDevices.size();
 		std::vector<GPGPU_LIB::Device> allCPUs = platform.getDevices(CL_DEVICE_TYPE_CPU, nOtherDevices);
 
 		if (deviceSelection & DEVICE_CPUS)
