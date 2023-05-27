@@ -1,6 +1,6 @@
 # libGPGPU
 
-Multi-GPU, Multi-Accelerator and CPU device controller to run OpenCL kernels with load-balancing to minimize running-times of kernels. [See wiki for details](https://github.com/tugrul512bit/libGPGPU/wiki).
+Some computers have multiple OpenCL-capable devices such as an integrated-GPU, a discrete-GPU and a CPU. But they do not automatically join their compute power to do some work quickly. There is a need of algorithm to separate a work into pieces and send them to all those devices. This library is written for unification of all(or only selected) devices within system, to run OpenCL kernels with load-balancing to minimize running-times of kernels as if they are part of a single GPU. [See wiki for details](https://github.com/tugrul512bit/libGPGPU/wiki).
 
 - When CPU is included as a device, it is partitioned to dedicate some of threads for other devices' I/O management (copying buffers, synchronizing their threads, etc).
 - Each device is given a dedicated CPU thread that does independent scheduling/synchronization for high performance load-balancing.
