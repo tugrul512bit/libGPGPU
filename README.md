@@ -94,7 +94,7 @@ Device 2: AMD Ryzen 9 7900 12-Core Processor (OpenCL 3.0 (Build 0) )[has direct 
 PI = 3.1415
 ```
 
-Kernel parameters can be selected in two different ways:
+## How to Select Parameters for a Kernel?
 
 - Explicitly setting parameters for only once, then calling kernel for multiple times
 ```C++
@@ -114,9 +114,10 @@ computer.compute(a.next(b),"kernelName", 0, n, 64);
 
 both versions are equivalent with a trivial amount of extra host latency on second version.
 
-Load balancing has two versions:
+## What Kind of Load Balancing is Implemented?
+
 - dynamic: a queue is filled with many small pieces of work, then all devices independently consume the queue until it is empty. this has good work-distribution quality but high latency due to multiple synchronizations
-- static: work is divided into bigger chunks and they are directly sent to all devices. after each run, device performances are calculated and a new(and better) work-distribution ratio is found for next run.
+- static: work is divided into bigger chunks and they are directly sent to their own devices. After each run, device performances are calculated and a new(and better) work-distribution ratio is found for next run.
 
 Static load balancing: good for uniform work-loads over work-items / data elements (simple image-processing algorithms, nbody algorithm, string-searching, etc)
 ```C++
