@@ -10,7 +10,7 @@ Some computers have multiple OpenCL-capable devices such as an integrated-GPU, a
 - - CPU RAM-sharing devices also benefit good from CPU L3 cache (especially if it is bigger than dataset)
 - Devices can be cloned for overlapping I/O/compute operations to decrease overall latency or increase throughput during load-balancing. CPU & iGPU are not cloned.
 
-![Simplified Load Balancing](https://github.com/tugrul512bit/libGPGPU/img_list/diagram.png)
+![simplified load balancing](https://github.com/tugrul512bit/libGPGPU/blob/18852af7c3a23f202f1b02e2902dc9cfbb4f9c7c/img_list/diagram.png)
 
 Dependency:
 
