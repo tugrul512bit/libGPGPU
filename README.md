@@ -34,39 +34,34 @@ int main()
     {
         const int n = 1024; // number of array elements to test
 
-        // test system: Ryzen 7900, GT1030: 384 adder pipelines (5.4 GHz) from CPU, 128 adder pipelines (2.2GHz) from iGPU, 384 adder pipelines from GPU (1.7 GHz)
-        // this computer now has a big GPU with 896 pipelines for adding floating-point numbers
-        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL);
+        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL); // allocate all devices for computations
         for (auto& name : computer.deviceNames())
             std::cout << name << std::endl;
-            
-        // compile a kernel to do the adding C=A+B for all elmeents
+
+        // compile a kernel to do C=A*m+B for all elements
         computer.compile(R"(
-            kernel void vectorAdd(global float * A, global float * B, global float * C) 
+            kernel void blendFunc(float multiplier, global float * A, global float * B, global float * C) 
             { 
                 int id=get_global_id(0); 
-                C[id] = A[id] + B[id]; // this is running on all selected devices such as CPU, iGPU, GPU, just with different id value given by internal logic of library
-             })", "vectorAdd");
+                C[id] = A[id] * multiplier + B[id];
+             })", "blendFunc");
 
         // create host arrays that will be auto-copied-to/from GPUs/CPUs/Accelerators before/after kernel runs
-        auto A = computer.createHostParameter<float>("A", n, 1, true, false, false);
-        auto B = computer.createHostParameter<float>("B", n, 1, true, false, false);
-        auto C = computer.createHostParameter<float>("C", n, 1, false, true, false);
+        auto multiplier = computer.createScalarInput<float>("multiplier");
+        multiplier.access<float>(0) = 3.1415f;
+
+        // array inputs can be load-balanced (k items per thread) type or broadcasted type (all elements accessed per thread)
+        auto A = computer.createArrayInputLoadBalanced<float>("A", n);
+        auto B = computer.createArrayInputLoadBalanced<float>("B", n);
+        auto C = computer.createArrayOutput<float>("C", n);
 
         // initialize one element for testing
-        A.access<float>(400) = 3.0f;
-        B.access<float>(400) = 0.1415f;
-        C.access<float>(400) = 0.0f; // this will be PI
+        A.access<float>(400) = 2.0f;
+        B.access<float>(400) = -3.1415f;
+        C.access<float>(400) = 0.0f; 
 
-        // distribute input data to all selected devices, compute elements, gather results on C buffer
-        // when called multiple times, it optimizes running-time on each call and approach the optimum load-balance ratios where fastest (and highest pcie bandwidth) GPUs get largest number of elements to compute
-        // n: number of elements to compute
-        // 0: offset element index to start computing
-        // 64: number of local threads (number of workitems in a workgroup, because OpenCL works in groups of threads for each device)
-        // n must be integer-multiple of local threads
-        computer.compute(A.next(B).next(C),"vectorAdd",0,n,64);
-        
-        // check if the algorithm worked
+        // compute, uses all GPUs and other devices with load-balancing to give faster devices more job to minimize overall latency of kernel (including copy latency too)
+        computer.compute(multiplier.next(A).next(B).next(C),"blendFunc",0,n,64);
         std::cout << "PI = " << C.access<float>(400) << std::endl;
 
     }
@@ -77,6 +72,7 @@ int main()
     return 0;
 }
 
+
 ```
 
 output:
@@ -84,7 +80,7 @@ output:
 ```
 Device 0: GeForce GT 1030 (OpenCL 1.2 CUDA ) [direct-RAM-access disabled]
 Device 1: gfx1036 (OpenCL 2.0 AMD-APP (3444.0) )[has direct access to RAM] [direct-RAM-access disabled]
-Device 2: AMD Ryzen 9 7900 12-Core Processor              (OpenCL 3.0 (Build 0) )[has direct access to RAM]
+Device 2: AMD Ryzen 9 7900 12-Core Processor (OpenCL 3.0 (Build 0) )[has direct access to RAM]
 PI = 3.1415
 ```
 
