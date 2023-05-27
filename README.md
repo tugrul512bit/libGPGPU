@@ -1,5 +1,7 @@
 # libGPGPU
 
+## What is libGPGPU?
+
 Some computers have multiple OpenCL-capable devices such as an integrated-GPU, a discrete-GPU and a CPU. But they do not automatically join their compute power to do some work quickly. There is a need of algorithm to separate a work into pieces and send them to all those devices. This library is written for unification of all(or only selected) devices within system, to run OpenCL kernels with load-balancing to minimize running-times of kernels as if they are part of a single GPU. [See wiki for details](https://github.com/tugrul512bit/libGPGPU/wiki).
 
 - When CPU is included as a device, it is partitioned to dedicate some of threads for other devices' I/O management (copying buffers, synchronizing their threads, etc).
@@ -12,17 +14,19 @@ Some computers have multiple OpenCL-capable devices such as an integrated-GPU, a
 
 ![simplified load balancing](https://github.com/tugrul512bit/libGPGPU/blob/18852af7c3a23f202f1b02e2902dc9cfbb4f9c7c/img_list/diagram.png)
 
-Dependency:
+## Dependencies
 
-- Visual Studio with vcpkg (that auto-installs OpenCL for the project) ![vcpkg](https://github.com/tugrul512bit/libGPGPU/assets/23708129/4a064dcb-b967-478d-a15f-fc69f4e3e9ee)
+- Visual Studio (2022 community edition, etc) with vcpkg (that auto-installs OpenCL for the project) ![vcpkg](https://github.com/tugrul512bit/libGPGPU/assets/23708129/4a064dcb-b967-478d-a15f-fc69f4e3e9ee)
 - - Maybe works in Ubuntu without vcpkg too, just need explicitly linking of OpenCL libraries and headers
 - OpenCL 1.2 runtime (s) [Intel's runtime can find CPUs of AMD processors too & run AVX512 on Ryzen 7000 series CPU cores] (multiple platforms are scanned for all devices)
 - OpenCL device(s) like GTX 1050 ti graphics card, a new CPU that has teraflops of performance, integrated GPU, all at the same time can be used as a big unified GPU.
 - C++17
 
-Hello-world sample that adds two vectors of length 1024:
+## Hello World
 
 ```C++
+// hello-world program that blends A and B vectors
+
 #include <iostream>
 #include <fstream>
 
@@ -51,17 +55,20 @@ int main()
 
         // create host arrays that will be auto-copied-to/from GPUs/CPUs/Accelerators before/after kernel runs
         auto multiplier = computer.createScalarInput<float>("multiplier");
-        multiplier.access<float>(0) = 3.1415f;
 
-        // array inputs can be load-balanced (k items per thread) type or broadcasted type (all elements accessed per thread)
+        // same as multiplier.access<float>(0) = 3.1415f;
+        multiplier = 3.1415f;
+
         auto A = computer.createArrayInputLoadBalanced<float>("A", n);
         auto B = computer.createArrayInputLoadBalanced<float>("B", n);
         auto C = computer.createArrayOutput<float>("C", n);
-
+        
         // initialize one element for testing
         A.access<float>(400) = 2.0f;
         B.access<float>(400) = -3.1415f;
-        C.access<float>(400) = 0.0f; 
+
+        // initializing all elements at once
+        C = 0.0f; 
 
         // compute, uses all GPUs and other devices with load-balancing to give faster devices more job to minimize overall latency of kernel (including copy latency too)
         computer.compute(multiplier.next(A).next(B).next(C),"blendFunc",0,n,64);
