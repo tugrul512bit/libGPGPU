@@ -96,6 +96,36 @@ namespace GPGPU
 			return elementSize;
 		}
 
+		// sets all elements to the newValue value
+		template<typename T>
+		void operator = (const T& newValue)
+		{
+			std::fill(
+				reinterpret_cast<T*>(quickPtr),
+				reinterpret_cast<T*>(quickPtr + (n * elementSize)),
+				newValue
+			);
+		}
+
+		void operator = (const HostParameter& hPrm)
+		{
+			elementSize = hPrm.elementSize;
+
+			name=hPrm.name;
+			n=hPrm.n;
+			elementSize=hPrm.elementSize;
+			elementsPerThr=hPrm.elementsPerThr;
+			ptr=hPrm.ptr;
+			prmList=hPrm.prmList;
+
+			
+			quickPtr=hPrm.quickPtr;
+			quickPtrVal=hPrm.quickPtrVal;
+			readOp=hPrm.readOp;
+			writeOp=hPrm.writeOp;
+			readAllOp=hPrm.readAllOp;
+		}
+
 	};
 }
 

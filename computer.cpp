@@ -126,6 +126,8 @@ namespace GPGPU
 
 		std::map<std::string, std::map<std::string, int>>::iterator it1 = kernelParameters.find(kernelName);
 		bool sendToThreads = false;
+
+		// if  kernel name not found (not run before)
 		if (it1 == kernelParameters.end())
 		{
 			kernelParameters[kernelName][parameterName] = parameterPosition;
@@ -134,6 +136,8 @@ namespace GPGPU
 		else
 		{
 			std::map<std::string, int>::iterator it2 = it1->second.find(parameterName);
+
+			// if parameter name not found in kernel settings (not used with this kernel before)
 			if (it2 == it1->second.end())
 			{
 				it1->second[parameterName] = parameterPosition;
@@ -141,12 +145,14 @@ namespace GPGPU
 			}
 			else
 			{
-				// if parameter position did not change, do nothing, if all else, do something
+				// if parameter position changed, then update
 				if (it2->second != parameterPosition)
 				{
 					it2->second = parameterPosition;
 					sendToThreads = true;
 				}
+
+				// if parameter position did not change, do nothing
 			}
 		}
 
