@@ -35,7 +35,7 @@ int main()
         auto A = computer.createArrayInputLoadBalanced<float>("A", n);
         auto B = computer.createArrayInputLoadBalanced<float>("B", n);
         auto C = computer.createArrayOutput<float>("C", n);
-
+        
         // initialize one element for testing
         A.access<float>(400) = 2.0f;
         B.access<float>(400) = -3.1415f;
