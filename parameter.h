@@ -61,18 +61,26 @@ namespace GPGPU
 
 		HostParameter next(HostParameter prm);
 
+		// read buffer and write to region starting at ptrPrm
+		// numElements=0 means all elements are copied
 		template<typename T>
-		void copyDataToPtr(T * ptrPrm, size_t numElements, size_t elementOffset)
+		void copyDataToPtr(T * ptrPrm, size_t numElements=0, size_t elementOffset=0)
 		{
+			elementOffset = (numElements == 0 ? 0 : elementOffset);
+			numElements = (numElements == 0 ? n : numElements);
 			std::copy(
 				reinterpret_cast<T*>(quickPtr + (elementOffset * elementSize)),
 				reinterpret_cast<T*>(quickPtr + ((elementOffset + numElements) * elementSize)),
 				ptrPrm);
 		}
 
+		// read region starting from ptrPrm and write to buffer
+		// numElements=0 means all elements are copied
 		template<typename T>
-		void copyDataFromPtr(T* ptrPrm, size_t numElements, size_t elementOffset)
+		void copyDataFromPtr(T* ptrPrm, size_t numElements=0, size_t elementOffset=0)
 		{
+			elementOffset = (numElements == 0 ? 0 : elementOffset);
+			numElements = (numElements == 0 ? n : numElements);
 			std::copy(
 				ptrPrm,
 				ptrPrm+numElements,
