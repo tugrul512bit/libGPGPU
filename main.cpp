@@ -1,3 +1,5 @@
+// hello-world program that blends A and B values
+
 #include <iostream>
 #include <fstream>
 
@@ -13,27 +15,32 @@ int main()
         const int n = 1024; // number of array elements to test
 
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL); // allocate all devices for computations
+        for (auto& name : computer.deviceNames())
+            std::cout << name << std::endl;
 
-        // compile a kernel to do the adding C=A+B for all elmeents
+        // compile a kernel to do C=A*m+B for all elements
         computer.compile(R"(
-            kernel void vectorAdd(global float * A, global float * B, global float * C) 
+            kernel void blendFunc(float multiplier, global float * A, global float * B, global float * C) 
             { 
                 int id=get_global_id(0); 
-                C[id] = A[id] + B[id];
-             })", "vectorAdd");
+                C[id] = A[id] * multiplier + B[id];
+             })", "blendFunc");
 
         // create host arrays that will be auto-copied-to/from GPUs/CPUs/Accelerators before/after kernel runs
-        auto A = computer.createHostParameter<float>("A", n, 1, true, false, false);
-        auto B = computer.createHostParameter<float>("B", n, 1, true, false, false);
-        auto C = computer.createHostParameter<float>("C", n, 1, false, true, false);
+        auto multiplier = computer.createScalarInput<float>("multiplier");
+        multiplier.access<float>(0) = 3.1415f;
+
+        auto A = computer.createArrayInputLoadBalanced<float>("A", n);
+        auto B = computer.createArrayInputLoadBalanced<float>("B", n);
+        auto C = computer.createArrayOutput<float>("C", n);
 
         // initialize one element for testing
-        A.access<float>(400) = 3.0f;
-        B.access<float>(400) = 0.1415f;
-        C.access<float>(400) = 0.0f; // this will be PI
+        A.access<float>(400) = 2.0f;
+        B.access<float>(400) = -3.1415f;
+        C.access<float>(400) = 0.0f; 
 
         // compute, uses all GPUs and other devices with load-balancing to give faster devices more job to minimize overall latency of kernel (including copy latency too)
-        computer.compute(A.next(B).next(C),"vectorAdd",0,n,64);
+        computer.compute(multiplier.next(A).next(B).next(C),"blendFunc",0,n,64);
         std::cout << "PI = " << C.access<float>(400) << std::endl;
 
     }

@@ -82,6 +82,38 @@ namespace GPGPU
 			}
 			return hostParameters[parameterName];
 		}
+
+		// creates a single item - array on host side but a scalar on device side
+		template<typename T>
+		HostParameter createScalarInput(std::string parameterName)
+		{
+			return createHostParameter<T>(parameterName, 1, 1, true, false, true);
+		}
+
+		// creates input array. All elements are copied to all devices.
+		// use for randomly accessing any other data element within any work-item or device
+		template<typename T>
+		HostParameter createArrayInput(std::string parameterName, size_t numElements, size_t numElementsPerThread=1)
+		{
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, true, false, true);
+		}
+
+		// creates input array. Devices get only their own elements.
+		// use for embarrassingly-parallel data where neighboring data elements are not required
+		template<typename T>
+		HostParameter createArrayInputLoadBalanced(std::string parameterName, size_t numElements, size_t numElementsPerThread=1)
+		{
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, true, false, false);
+		}
+
+		// creates output array. Devices copy only their own elements to the output because of possible race-conditions
+		// works like createArrayInputLoadBalanced except for the output
+		template<typename T>
+		HostParameter createArrayOutput(std::string parameterName, size_t numElements, size_t numElementsPerThread=1)
+		{
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, true, false);
+		}
+
 		// binds a parameter to a kernel at parameterPosition-th position
 		void setKernelParameter(std::string kernelName, std::string parameterName, int parameterPosition);
 
