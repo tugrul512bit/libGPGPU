@@ -17,7 +17,7 @@ Dependency:
 - OpenCL device(s) like GTX 1050 ti graphics card, a new CPU that has teraflops of performance, integrated GPU, all at the same time can be used as a big unified GPU.
 - C++17
 
-Hello-world sample:
+Hello-world sample that adds two vectors of length 1024:
 
 ```C++
 #include <iostream>
@@ -34,14 +34,18 @@ int main()
     {
         const int n = 1024; // number of array elements to test
 
-        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL); // allocate all devices for computations
-
+        // test system: Ryzen 7900, GT1030: 384 adder pipelines (5.4 GHz) from CPU, 128 adder pipelines (2.2GHz) from iGPU, 384 adder pipelines from GPU (1.7 GHz)
+        // this computer now has a big GPU with 896 pipelines for adding floating-point numbers
+        GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL);
+        for (auto& name : computer.deviceNames())
+            std::cout << name << std::endl;
+            
         // compile a kernel to do the adding C=A+B for all elmeents
         computer.compile(R"(
             kernel void vectorAdd(global float * A, global float * B, global float * C) 
             { 
                 int id=get_global_id(0); 
-                C[id] = A[id] + B[id];
+                C[id] = A[id] + B[id]; // this is running on all selected devices such as CPU, iGPU, GPU, just with different id value given by internal logic of library
              })", "vectorAdd");
 
         // create host arrays that will be auto-copied-to/from GPUs/CPUs/Accelerators before/after kernel runs
@@ -54,8 +58,15 @@ int main()
         B.access<float>(400) = 0.1415f;
         C.access<float>(400) = 0.0f; // this will be PI
 
-        // compute, uses all GPUs and other devices with load-balancing to give faster devices more job to minimize overall latency of kernel (including copy latency too)
+        // distribute input data to all selected devices, compute elements, gather results on C buffer
+        // when called multiple times, it optimizes running-time on each call and approach the optimum load-balance ratios where fastest (and highest pcie bandwidth) GPUs get largest number of elements to compute
+        // n: number of elements to compute
+        // 0: offset element index to start computing
+        // 64: number of local threads (number of workitems in a workgroup, because OpenCL works in groups of threads for each device)
+        // n must be integer-multiple of local threads
         computer.compute(A.next(B).next(C),"vectorAdd",0,n,64);
+        
+        // check if the algorithm worked
         std::cout << "PI = " << C.access<float>(400) << std::endl;
 
     }
@@ -71,24 +82,31 @@ int main()
 output:
 
 ```
-GeForce GT 1030 (OpenCL 1.2 CUDA )
-gfx1036 (OpenCL 2.0 AMD-APP (3444.0) )[direct access to RAM]
-AMD Ryzen 9 7900 12-Core Processor              (OpenCL 3.0 (Build 0) )[direct access to RAM]
-ok
+Device 0: GeForce GT 1030 (OpenCL 1.2 CUDA ) [direct-RAM-access disabled]
+Device 1: gfx1036 (OpenCL 2.0 AMD-APP (3444.0) )[has direct access to RAM] [direct-RAM-access disabled]
+Device 2: AMD Ryzen 9 7900 12-Core Processor              (OpenCL 3.0 (Build 0) )[has direct access to RAM]
+PI = 3.1415
 ```
 
-Kernel parameters can be selected in a different way by method-chaining:
+Kernel parameters can be selected in two different ways:
 
+- Explicitly setting parameters for only once, then calling kernel for multiple times
 ```C++
-// Replace this:
-        computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "a", 0);
-        computer.setKernelParameter("add1ToEveryElementBut4ElementsPerThread", "b", 1);
-        computer.run("add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); // n/4 number of total threads, 256 local threads per work group
-        
-// With this:
-        computer.compute(a.next(b),"add1ToEveryElementBut4ElementsPerThread", 0, n / 4, 256); 
+computer.setKernelParameter("kernelName", "a", 0);
+computer.setKernelParameter("kernelName", "b", 1);
+computer.run("kernelName", 0, n , 64); 
+computer.run("kernelName", 0, n , 64); 
+computer.run("kernelName", 0, n , 64); 
+
 ```
-both versions are equivalent with a trivial amount of extra host latency (and less device-latency) on second version.
+- Method-chaining to build a parameter-list in one-line:
+```C++
+computer.compute(a.next(b),"kernelName", 0, n, 64); 
+computer.compute(a.next(b),"kernelName", 0, n, 64); 
+computer.compute(a.next(b),"kernelName", 0, n, 64); 
+```
+
+both versions are equivalent with a trivial amount of extra host latency on second version.
 
 Load balancing has two versions:
 - dynamic: a queue is filled with many small pieces of work, then all devices independently consume the queue until it is empty. this has good work-distribution quality but high latency due to multiple synchronizations
