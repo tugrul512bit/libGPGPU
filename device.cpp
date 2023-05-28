@@ -60,5 +60,7 @@ namespace GPGPU_LIB
 		{
 			name = "";
 		}
+
+		
 	}
 }

@@ -18,11 +18,17 @@ namespace GPGPU_LIB
 	}
 
 	template<int T>
+	struct ContainerT
+	{
+		int8_t data[T];
+	};
+
+	template<int T>
 	constexpr void bigSwitchCase(Parameter& prm, Kernel& kernel, const int idx)
 	{
 		if (T == 1 && T == prm.hostPrm.getElementSize())
 		{
-			kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[1]>(0));
+			kernel.kernel.setArg(idx, prm.hostPrm.access<ContainerT<1>>(0));
 			return;
 		}
 
@@ -30,7 +36,7 @@ namespace GPGPU_LIB
 
 		if (T == prm.hostPrm.getElementSize())
 		{
-			kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[T]>(0));
+			kernel.kernel.setArg(idx, prm.hostPrm.access<ContainerT<T>>(0));
 		}
 		else if (T > 1)
 		{
@@ -45,7 +51,7 @@ namespace GPGPU_LIB
 	{
 		if (1 == prm.hostPrm.getElementSize())
 		{
-			kernel.kernel.setArg(idx, prm.hostPrm.access<int8_t[1]>(0));
+			kernel.kernel.setArg(idx, prm.hostPrm.access<ContainerT<1>>(0));
 			return;
 		}
 	}

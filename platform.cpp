@@ -98,6 +98,7 @@ namespace GPGPU_LIB
 			std::vector<Device> devicesResult;
 			for (int i = 0; i < devices.size(); i++)
 			{
+				std::cout << devices[i].ver << ":::::" << CL_HPP_MINIMUM_OPENCL_VERSION << std::endl;
 				if (devices[i].ver >= CL_HPP_MINIMUM_OPENCL_VERSION)
 				{
 					devicesResult.push_back(devices[i]);
