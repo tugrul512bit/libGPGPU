@@ -21,7 +21,7 @@ int main()
             std::cout << d << std::endl;
         }
 
-        std::cout << "-------------------------------------------" << std::endl;
+        std::cout << "-------------------------------------------" << std::endl; 
         std::cout << "Starting compilation of kernel..." << std::endl;
 
         computer.compile(std::string(R"(
