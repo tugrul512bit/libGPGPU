@@ -227,6 +227,71 @@ namespace GPGPU
 		return performancesOfDevices;
 	}
 
+
+	// applies load-balancing inside each call
+	std::vector<double> Computer::runFineGrainedLoadBalancingMultiple(std::vector<std::string> kernelNames, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize)
+	{
+		std::vector<double> performancesOfDevices(workers.size());
+		std::string kernelNamesJoined;
+		for (auto& str : kernelNames)
+		{
+			kernelNamesJoined += (str + " ");
+		}
+		//std::cout << "debug 2.5" << std::endl;
+		std::shared_ptr<GPGPU_LIB::GPGPUTaskQueue> taskQueue = std::make_shared<GPGPU_LIB::GPGPUTaskQueue>();
+
+		//std::cout << "debug 4" << std::endl;
+		for (size_t i = 0; i < numGlobalThreads; i += loadSize)
+		{
+
+			GPGPU_LIB::GPGPUTask task;
+			task.taskType = GPGPU_LIB::GPGPUTask::GPGPU_TASK_COMPUTE_MULTIPLE;
+			task.kernelNames = kernelNames;
+			task.globalOffset = offsetElement;
+			task.offset = i;
+			task.globalSize = loadSize;
+			task.localSize = numLocalThreads;
+			taskQueue->push(task);
+
+		}
+		//std::cout << "debug 5" << std::endl;
+		// compute kernels with balanced loads
+		//std::cout << "debug 1" << std::endl;
+		for (int i = 0; i < workers.size(); i++)
+		{
+			// mark end of queue for each worker
+			GPGPU_LIB::GPGPUTask task;
+			task.taskType = GPGPU_LIB::GPGPUTask::GPGPU_TASK_NULL;
+			taskQueue->push(task);
+			workers[i]->runTasks(taskQueue, kernelNamesJoined);
+		}
+
+		//std::cout << "debug 2" << std::endl;
+		//std::cout << "debug 6" << std::endl;
+		for (int i = 0; i < workers.size(); i++)
+		{
+			workers[i]->waitAllTasks();
+		}
+		//std::cout << "debug 3" << std::endl;
+
+		double norm = 0.0;
+
+		for (int i = 0; i < workers.size(); i++)
+		{
+			std::unique_lock<std::mutex> lock(workers[i]->commonSync);
+
+			performancesOfDevices[i] = workers[i]->works[kernelNamesJoined] / workers[i]->benchmarks[kernelNamesJoined];
+			norm += performancesOfDevices[i];
+		}
+
+		for (int i = 0; i < workers.size(); i++)
+		{
+			performancesOfDevices[i] /= norm;
+		}
+		return performancesOfDevices;
+	}
+
+
 	// applies load-balancing between calls
 	std::vector<double> Computer::run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads)
 	{
@@ -241,7 +306,6 @@ namespace GPGPU
 
 
 		// compute load-balancing
-
 		auto& oldLoadBalnc = oldLoadBalances[kernelName];
 		const int nlb = oldLoadBalnc.size();
 		double totalLoad = 0;
@@ -254,6 +318,7 @@ namespace GPGPU
 			}
 
 		}
+
 		for (int i = 0; i < n; i++)
 		{
 			std::unique_lock<std::mutex> lock(workers[i]->commonSync);
@@ -268,17 +333,12 @@ namespace GPGPU
 			totalLoad += nano[i];
 		}
 
-
-
 		// normalized loads
 		for (int i = 0; i < n; i++)
 		{
 			avg[i] = nano[i];
 			selectedKernelLB[i] = nano[i] / totalLoad;
 		}
-
-
-
 
 		for (int i = 0; i < nlb - 1; i++)
 		{
@@ -306,7 +366,6 @@ namespace GPGPU
 			}
 			totalThreads += ranges[i];
 		}
-
 
 
 		size_t toBeSubtracted = 0;
@@ -348,8 +407,6 @@ namespace GPGPU
 		}
 
 
-
-
 		for (int i = 0; i < n; i++)
 			newTotal += ranges[i];
 
@@ -369,7 +426,6 @@ namespace GPGPU
 		}
 
 
-
 		// compute offsets
 		size_t curOfs = 0;
 		for (int i = 0; i < n; i++)
@@ -377,15 +433,6 @@ namespace GPGPU
 			offsets[i] = curOfs;
 			curOfs += ranges[i];
 		}
-
-		/*
-		for (int i = 0; i < n; i++)
-			std::cout<<
-			workers[i]->context.device.device.getInfo<CL_DEVICE_NAME>() << ":        " << ranges[i] << "     isCPU:" <<
-			workers[i]->context.device.isCPU << ":        " <<
-			std::endl;
-		*/
-
 
 		// compute kernels with balanced loads
 		for (int i = 0; i < n; i++)
@@ -418,6 +465,185 @@ namespace GPGPU
 		return nano;
 	}
 
+	// applies load-balancing between calls
+	std::vector<double> Computer::runMultiple(std::vector<std::string> kernelNames, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads)
+	{
+		std::string kernelName;
+		for (auto& str : kernelNames)
+		{
+			kernelName += (str + " ");
+		}
+		const int n = workers.size();
+		std::vector<double> nano(n);
+		if (loadBalances.find(kernelName) == loadBalances.end())
+		{
+			loadBalances[kernelName] = std::vector<double>(n, 1.0);
+		}
+
+		std::vector<double>& selectedKernelLB = loadBalances[kernelName];
+
+
+		// compute load-balancing
+		auto& oldLoadBalnc = oldLoadBalances[kernelName];
+		const int nlb = oldLoadBalnc.size();
+		double totalLoad = 0;
+		std::vector<double> avg(n, 0);
+		for (int i = 0; i < nlb; i++)
+		{
+			for (int j = 0; j < n; j++)
+			{
+				avg[j] += oldLoadBalnc[i][j];
+			}
+
+		}
+
+		for (int i = 0; i < n; i++)
+		{
+			std::unique_lock<std::mutex> lock(workers[i]->commonSync); 
+			if(workers[i]->benchmarks.find(kernelName) == workers[i]->benchmarks.end())
+				workers[i]->benchmarks[kernelName] = 1;
+			nano[i] = workers[i]->benchmarks[kernelName];
+
+		}
+
+		for (int i = 0; i < n; i++)
+		{
+			nano[i] = ranges[i] / nano[i]; // capability = run_size / run_time
+			nano[i] = (avg[i] + (nano[i] * 4)) / (nlb + 4);
+			totalLoad += nano[i];
+		}
+
+		// normalized loads
+		for (int i = 0; i < n; i++)
+		{
+			avg[i] = nano[i];
+			selectedKernelLB[i] = nano[i] / totalLoad;
+		}
+
+		for (int i = 0; i < nlb - 1; i++)
+		{
+			oldLoadBalnc[i] = oldLoadBalnc[i + 1];
+		}
+
+		if (oldLoadBalnc.size() > 1)
+			oldLoadBalnc.resize(1);
+
+		// calculate ranges
+		for (int i = 0; i < n; i++)
+		{
+			ranges[i] = (((size_t)(numGlobalThreads * selectedKernelLB[i])) / numLocalThreads) * numLocalThreads;
+		}
+
+		size_t totalThreads = 0;
+
+		// refine ranges (invalid values)
+		for (int i = 0; i < n; i++)
+		{
+			// if no work was given, give it at least single work group 
+			if (ranges[i] == 0)
+			{
+				ranges[i] = numLocalThreads;
+			}
+			totalThreads += ranges[i];
+		}
+
+
+		size_t toBeSubtracted = 0;
+		size_t toBeAdded = 0;
+		// can not compute more threads than given
+		if (totalThreads > numGlobalThreads)
+		{
+			toBeSubtracted = totalThreads - numGlobalThreads;
+		}
+
+		// can not compute more threads than given
+		if (totalThreads < numGlobalThreads)
+		{
+			toBeAdded = numGlobalThreads - totalThreads;
+		}
+
+		// redistribute the remainder
+		// first devices tend to trade more of it, negligible when numGlobalThreads >> numLocalThreads
+		int tryCt = 0;
+		size_t newTotal = 0;
+		while (toBeSubtracted > 0 || toBeAdded > 0)
+		{
+			if (tryCt++ > 10)
+				break;
+			for (int i = 0; i < n; i++)
+			{
+				if (toBeSubtracted > 0 && ranges[i] > numLocalThreads)
+				{
+					ranges[i] -= numLocalThreads;
+					toBeSubtracted -= numLocalThreads;
+				}
+
+				if (toBeAdded > 0)
+				{
+					ranges[i] += numLocalThreads;
+					toBeAdded -= numLocalThreads;
+				}
+			}
+		}
+
+
+		for (int i = 0; i < n; i++)
+			newTotal += ranges[i];
+
+		if (toBeSubtracted > 0 || toBeAdded > 0 || newTotal != numGlobalThreads || (newTotal / numLocalThreads) * numLocalThreads != newTotal)
+		{
+			std::string err("error: load-balancing failed. check if there is enough number of local threads in global number of threads to share between all devices and global must be integer-multiple of local");
+			err += std::string(" \n  threads need to be subtracted =  ") + std::to_string(toBeSubtracted);
+			err += std::string(" \n  threads need to be added =  ") + std::to_string(toBeAdded);
+			err += std::string(" \n  total threads distributed =  ") + std::to_string(newTotal);
+			err += std::string(" \n  global threads required =  ") + std::to_string(numGlobalThreads);
+			for (int i = 0; i < n; i++)
+			{
+				err += std::string("\n performance of device = ");
+				err += std::to_string(workers[i]->benchmarks[kernelName]);
+			}
+			throw std::invalid_argument(err);
+		}
+
+
+		// compute offsets
+		size_t curOfs = 0;
+		for (int i = 0; i < n; i++)
+		{
+			offsets[i] = curOfs;
+			curOfs += ranges[i];
+		}
+
+		// compute kernels with balanced loads			
+		for (int i = 0; i < n; i++)
+		{
+			workers[i]->run(kernelName, offsetElement, offsets[i], ranges[i], numLocalThreads, true, kernelNames);
+		}
+		
+
+		// do some work while gpus are working independently
+		oldLoadBalnc.push_back(avg);
+		double norm = 0.0;
+
+		for (int i = 0; i < n; i++)
+		{
+			nano[i] = ranges[i];
+			norm += ranges[i];
+		}
+
+		for (int i = 0; i < n; i++)
+		{
+			nano[i] /= norm;
+		}
+
+		for (int i = 0; i < n; i++)
+		{
+			workers[i]->waitAllTasks();
+		}
+		
+		return nano;
+	}
+
 	std::vector<double> Computer::compute(
 		GPGPU::HostParameter prm,
 		std::string kernelName,
@@ -438,6 +664,41 @@ namespace GPGPU
 			performancesOfDevices=runFineGrainedLoadBalancing(kernelName, offsetElement, numGlobalThreads, numLocalThreads, fineGrainSize == 0 ? numLocalThreads : fineGrainSize);
 		else
 			performancesOfDevices=run(kernelName, offsetElement, numGlobalThreads, numLocalThreads);
+		return performancesOfDevices;
+	}
+
+	std::vector<double> Computer::computeMultiple(
+		std::vector<GPGPU::HostParameter> prms,
+		std::vector<std::string> kernelNames,
+		size_t offsetElement,
+		size_t numGlobalThreads,
+		size_t numLocalThreads,
+		bool fineGrainedLoadBalancing,
+		size_t fineGrainSize)
+	{
+		std::map<std::string, bool> isSet;
+		std::vector<double> performancesOfDevices;
+		const int n = prms.size();
+
+		for (int i = 0; i < n; i++)
+		{
+			auto kernIt = isSet.find(kernelNames[i]);
+			if (kernIt == isSet.end())
+			{
+				const int k = prms[i].prmList.size();
+				for (int j = 0; j < k; j++)
+				{
+					setKernelParameter(kernelNames[i], prms[i].prmList[j], j);
+				}
+				isSet.emplace(kernelNames[i], true);
+			}
+		}
+
+
+		if (fineGrainedLoadBalancing)
+			performancesOfDevices = runFineGrainedLoadBalancingMultiple(kernelNames, offsetElement, numGlobalThreads, numLocalThreads, fineGrainSize == 0 ? numLocalThreads : fineGrainSize);
+		else
+			performancesOfDevices = runMultiple(kernelNames, offsetElement, numGlobalThreads, numLocalThreads);
 		return performancesOfDevices;
 	}
 

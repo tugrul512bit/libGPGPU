@@ -100,8 +100,7 @@ namespace GPGPU_LIB
 		if (!sharesRAM)
 		{
 			for (auto& e : kernel.mapParameterNameToParameter)
-			{
-
+			{				
 				if (e.second.readOp)
 				{
 

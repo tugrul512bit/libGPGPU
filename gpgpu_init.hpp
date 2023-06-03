@@ -20,5 +20,6 @@ std::string getErrorString(cl_int errorCode);
 #include <queue>
 #include <condition_variable>
 #include <thread>
+#include <vector>
 
 #endif

@@ -45,7 +45,7 @@ namespace GPGPU_LIB
 
 		void waitAllTasks();
 
-		void run(std::string kernelName, size_t globalOffset, size_t offset, size_t numGlobal, size_t numLocal);
+		void run(std::string kernelName, size_t globalOffset, size_t offset, size_t numGlobal, size_t numLocal, bool multipleKernels=false, std::vector<std::string> kernelNames = std::vector<std::string>());
 
 		std::string deviceName();
 		std::string deviceNameSimple();

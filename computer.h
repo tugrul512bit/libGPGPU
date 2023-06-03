@@ -119,18 +119,29 @@ namespace GPGPU
 
 		// applies load-balancing inside each call (better for uneven workloads per work-item)
 		std::vector<double>  runFineGrainedLoadBalancing(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize);
+		std::vector<double>  runFineGrainedLoadBalancingMultiple(std::vector<std::string> kernelNames, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize);
 
 		/*
 			applies load - balancing between calls(better for even workloads per work - item)
 			returns workload ratios of devices (on the same order their names appear on deviceNames())
 		*/
 		std::vector<double> run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads);
+		std::vector<double> runMultiple(std::vector<std::string> kernelNames, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads);
 
 		// works same as run with default parameters of fineGrainedLoadBalancing = false and fineGrainSize = 0
 		// works same as runFineGrainedLoadBalancing with fineGrainedLoadBalancing = true (which sets fineGrainSize = numLocalThreads that may not be optimal for performance for too high global threads)
 		std::vector<double> compute(
 			GPGPU::HostParameter prm,
 			std::string kernelName,
+			size_t offsetElement,
+			size_t numGlobalThreads,
+			size_t numLocalThreads,
+			bool fineGrainedLoadBalancing = false,
+			size_t fineGrainSize = 0);
+
+		std::vector<double> computeMultiple(
+			std::vector<GPGPU::HostParameter> prm,
+			std::vector<std::string> kernelName,
 			size_t offsetElement,
 			size_t numGlobalThreads,
 			size_t numLocalThreads,

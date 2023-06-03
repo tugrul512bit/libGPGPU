@@ -87,6 +87,27 @@ namespace GPGPU_LIB
 					break;
 				}
 
+
+				case (GPGPUTask::GPGPU_TASK_COMPUTE_MULTIPLE):
+				{
+					workLastCommand = 0;
+					{
+						GPGPU::Bench bench(&nanoLastCommand);
+						const int nK = task.kernelNames.size();
+						for (int i = 0; i < nK; i++)
+						{
+							Kernel& kernel = mapKernelNameToKernel[task.kernelNames[i]];
+							task.comQuePtr->copyInputsOfKernel(kernel, task.globalOffset, task.offset, task.globalSize);
+							task.comQuePtr->run(kernel, task.globalOffset, task.globalSize, task.localSize, task.offset);
+							task.comQuePtr->copyOutputsOfKernel(kernel, task.globalOffset, task.offset, task.globalSize);
+							workLastCommand += task.globalSize;
+						}
+						task.comQuePtr->sync();
+					}
+					std::cout << deviceName() << ": " << nanoLastCommand << std::endl;
+					break;
+				}
+
 				case (GPGPUTask::GPGPU_TASK_COMPUTE_ALL):
 				{
 					workLastCommand = 0;
@@ -227,19 +248,30 @@ namespace GPGPU_LIB
 			}
 		}
 
-		void Worker::run(std::string kernelName, size_t globalOffset, size_t offset, size_t numGlobal, size_t numLocal)
+		void Worker::run(std::string kernelName, size_t globalOffset, size_t offset, size_t numGlobal, size_t numLocal,bool multipleKernels,std::vector<std::string> kernelNames)
 		{
 			GPGPUTask task;
-			task.taskType = GPGPUTask::GPGPU_TASK_COMPUTE;
-			task.kernelName = kernelName;
-			task.offset = offset;
-			task.globalSize = numGlobal;
-			task.localSize = numLocal;
-			task.globalOffset = globalOffset;
-			task.comQuePtr = &queue;
+			if (multipleKernels)
+			{
+				task.taskType = GPGPUTask::GPGPU_TASK_COMPUTE_MULTIPLE;
+				task.kernelNames = kernelNames;
+				task.offset = offset;
+				task.globalSize = numGlobal;
+				task.localSize = numLocal;
+				task.globalOffset = globalOffset;
+				task.comQuePtr = &queue;
+			}
+			else
+			{
+				task.taskType = GPGPUTask::GPGPU_TASK_COMPUTE;
+				task.kernelName = kernelName;
+				task.offset = offset;
+				task.globalSize = numGlobal;
+				task.localSize = numLocal;
+				task.globalOffset = globalOffset;
+				task.comQuePtr = &queue;
+			}
 			taskQueue.push(task);
-
-
 		}
 
 		std::string Worker::deviceName()

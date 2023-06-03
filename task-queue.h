@@ -23,8 +23,10 @@ namespace GPGPU_LIB
 		const static int GPGPU_TASK_STOP = 5;
 		const static int GPGPU_TASK_RETURN_NANO_BENCH = 6;
 		const static int GPGPU_TASK_COMPUTE_ALL = 7;
+		const static int GPGPU_TASK_COMPUTE_MULTIPLE = 8;
 		std::string kernelCode;
 		std::string kernelName;
+		std::vector<std::string> kernelNames;
 		std::string parameterName;
 		int parameterPosition;
 		size_t offset;
