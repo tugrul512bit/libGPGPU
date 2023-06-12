@@ -114,6 +114,13 @@ namespace GPGPU
 			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, true, false);
 		}
 
+		// creates array that is not used for I/O with host (only meant for device-side state storage)
+		template<typename T>
+		HostParameter createArrayState(std::string parameterName, size_t numElements, size_t numElementsPerThread = 1)
+		{
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, false, false);
+		}
+
 		// binds a parameter to a kernel at parameterPosition-th position
 		void setKernelParameter(std::string kernelName, std::string parameterName, int parameterPosition);
 

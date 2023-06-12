@@ -228,70 +228,6 @@ namespace GPGPU
 	}
 
 
-	// applies load-balancing inside each call
-	std::vector<double> Computer::runFineGrainedLoadBalancingMultiple(std::vector<std::string> kernelNames, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads, size_t loadSize)
-	{
-		std::vector<double> performancesOfDevices(workers.size());
-		std::string kernelNamesJoined;
-		for (auto& str : kernelNames)
-		{
-			kernelNamesJoined += (str + " ");
-		}
-		//std::cout << "debug 2.5" << std::endl;
-		std::shared_ptr<GPGPU_LIB::GPGPUTaskQueue> taskQueue = std::make_shared<GPGPU_LIB::GPGPUTaskQueue>();
-
-		//std::cout << "debug 4" << std::endl;
-		for (size_t i = 0; i < numGlobalThreads; i += loadSize)
-		{
-
-			GPGPU_LIB::GPGPUTask task;
-			task.taskType = GPGPU_LIB::GPGPUTask::GPGPU_TASK_COMPUTE_MULTIPLE;
-			task.kernelNames = kernelNames;
-			task.globalOffset = offsetElement;
-			task.offset = i;
-			task.globalSize = loadSize;
-			task.localSize = numLocalThreads;
-			taskQueue->push(task);
-
-		}
-		//std::cout << "debug 5" << std::endl;
-		// compute kernels with balanced loads
-		//std::cout << "debug 1" << std::endl;
-		for (int i = 0; i < workers.size(); i++)
-		{
-			// mark end of queue for each worker
-			GPGPU_LIB::GPGPUTask task;
-			task.taskType = GPGPU_LIB::GPGPUTask::GPGPU_TASK_NULL;
-			taskQueue->push(task);
-			workers[i]->runTasks(taskQueue, kernelNamesJoined);
-		}
-
-		//std::cout << "debug 2" << std::endl;
-		//std::cout << "debug 6" << std::endl;
-		for (int i = 0; i < workers.size(); i++)
-		{
-			workers[i]->waitAllTasks();
-		}
-		//std::cout << "debug 3" << std::endl;
-
-		double norm = 0.0;
-
-		for (int i = 0; i < workers.size(); i++)
-		{
-			std::unique_lock<std::mutex> lock(workers[i]->commonSync);
-
-			performancesOfDevices[i] = workers[i]->works[kernelNamesJoined] / workers[i]->benchmarks[kernelNamesJoined];
-			norm += performancesOfDevices[i];
-		}
-
-		for (int i = 0; i < workers.size(); i++)
-		{
-			performancesOfDevices[i] /= norm;
-		}
-		return performancesOfDevices;
-	}
-
-
 	// applies load-balancing between calls
 	std::vector<double> Computer::run(std::string kernelName, size_t offsetElement, size_t numGlobalThreads, size_t numLocalThreads)
 	{
@@ -694,11 +630,28 @@ namespace GPGPU
 			}
 		}
 
-
 		if (fineGrainedLoadBalancing)
-			performancesOfDevices = runFineGrainedLoadBalancingMultiple(kernelNames, offsetElement, numGlobalThreads, numLocalThreads, fineGrainSize == 0 ? numLocalThreads : fineGrainSize);
+		{
+			const int nw = workers.size();
+			performancesOfDevices.resize(nw);
+			for (int j = 0; j < nw; j++)
+			{
+				performancesOfDevices[j] = 0;
+			}
+			for (int i = 0; i < n; i++)
+			{
+				auto performancesOfDevicesTmp = runFineGrainedLoadBalancing(kernelNames[i], offsetElement, numGlobalThreads, numLocalThreads, fineGrainSize == 0 ? numLocalThreads : fineGrainSize);
+				for (int j = 0; j < nw; j++)
+					performancesOfDevices[j] += performancesOfDevicesTmp[j];
+			}
+			for (int j = 0; j < nw; j++)
+				performancesOfDevices[j] /= nw;
+		}
 		else
+		{
 			performancesOfDevices = runMultiple(kernelNames, offsetElement, numGlobalThreads, numLocalThreads);
+		}
+				
 		return performancesOfDevices;
 	}
 

@@ -104,7 +104,7 @@ namespace GPGPU_LIB
 						}
 						task.comQuePtr->sync();
 					}
-					std::cout << deviceName() << ": " << nanoLastCommand << std::endl;
+					
 					break;
 				}
 
