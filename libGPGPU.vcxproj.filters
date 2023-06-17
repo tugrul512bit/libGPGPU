@@ -94,6 +94,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="vcpkg.json" />
+    <AppxManifest Include="vcpkg.json" />
   </ItemGroup>
 </Project>
