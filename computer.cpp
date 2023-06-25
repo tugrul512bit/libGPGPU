@@ -117,7 +117,15 @@ namespace GPGPU
 		}
 	}
 
+	void Computer::setHostParameterDirty(std::string parameterName)
+	{
+		hostParameters[parameterName].dirty = true;
+	}
 
+	bool Computer::getHostParameterDirty(std::string parameterName)
+	{
+		return hostParameters[parameterName].dirty;
+	}
 
 	// binds a parameter to a kernel at parameterPosition-th position
 	void Computer::setKernelParameter(std::string kernelName, std::string parameterName, int parameterPosition)
@@ -151,6 +159,17 @@ namespace GPGPU
 					it2->second = parameterPosition;
 					sendToThreads = true;
 				}
+				else
+				{
+					// if its scalar and has changed, then update again
+					HostParameter& hPrm = hostParameters[parameterName];
+					if (hPrm.n == 1 && hPrm.dirty)
+					{
+						hPrm.dirty = false;
+						sendToThreads = true;
+					}
+				}
+
 
 				// if parameter position did not change, do nothing
 			}

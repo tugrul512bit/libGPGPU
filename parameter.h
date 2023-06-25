@@ -5,7 +5,7 @@
 
 #include "gpgpu_init.hpp"
 #include "context.h"
-
+#include<functional>
 #include <memory>
 #include <algorithm>
 // forward-declaring for friendship because only friends have access to private parts
@@ -41,6 +41,9 @@ namespace GPGPU
 		bool readOp;
 		bool writeOp;
 		bool readAllOp;
+		bool dirty;
+		std::function<void(std::string)> dirtySetter;
+		std::function<bool(std::string)> dirtyGetter;
 	public:
 		HostParameter(
 			std::string parameterName = "",
@@ -56,6 +59,10 @@ namespace GPGPU
 		template<typename T>
 		T& access(size_t index)
 		{
+			// if it is scalar and it is an input = set dirty
+			// if its array and it is all-elements input = set dirty
+			if ((n == 1) || (n>1 && readAllOp))
+				dirtySetter(name); // sets dirty flag on computer instance
 			return *reinterpret_cast<T*>(quickPtr + (index * elementSize));
 		}
 
@@ -79,6 +86,10 @@ namespace GPGPU
 		template<typename T>
 		void copyDataFromPtr(T* ptrPrm, size_t numElements=0, size_t elementOffset=0)
 		{
+			// if it is scalar and it is an input = set dirty
+			// if its array and it is all-elements input = set dirty
+			if ((n == 1) || (n > 1 && readAllOp))
+				dirtySetter(name); // sets dirty flag on computer instance
 			elementOffset = (numElements == 0 ? 0 : elementOffset);
 			numElements = (numElements == 0 ? n : numElements);
 			std::copy(
@@ -100,6 +111,10 @@ namespace GPGPU
 		template<typename T>
 		void operator = (const T& newValue)
 		{
+			// if it is scalar and it is an input = set dirty
+			// if its array and it is all-elements input = set dirty
+			if ((n == 1) || (n > 1 && readAllOp))
+				dirtySetter(name); // sets dirty flag on computer instance
 			std::fill(
 				reinterpret_cast<T*>(quickPtr),
 				reinterpret_cast<T*>(quickPtr + (n * elementSize)),
@@ -124,6 +139,9 @@ namespace GPGPU
 			readOp=hPrm.readOp;
 			writeOp=hPrm.writeOp;
 			readAllOp=hPrm.readAllOp;
+			dirty = hPrm.dirty;
+			dirtySetter = hPrm.dirtySetter;
+			dirtyGetter = hPrm.dirtyGetter;
 		}
 
 	};

@@ -76,6 +76,12 @@ namespace GPGPU
 		HostParameter createHostParameter(std::string parameterName, size_t numElements, size_t numElementsPerThread, bool isInput, bool isOutput, bool isInputWithAllElements)
 		{
 			hostParameters[parameterName] = HostParameter(parameterName, numElements, sizeof(T), numElementsPerThread, isInput, isOutput, isInputWithAllElements);
+			hostParameters[parameterName].dirtySetter = [&](std::string name) {
+				this->setHostParameterDirty(name);
+			};
+			hostParameters[parameterName].dirtyGetter = [&](std::string name) {
+				return this->getHostParameterDirty(name);
+			};
 			for (int i = 0; i < workers.size(); i++)
 			{
 				workers[i]->mirror(&hostParameters[parameterName]);
@@ -120,6 +126,9 @@ namespace GPGPU
 		{
 			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, false, false);
 		}
+
+		void setHostParameterDirty(std::string parameterName);
+		bool getHostParameterDirty(std::string parameterName);
 
 		// binds a parameter to a kernel at parameterPosition-th position
 		void setKernelParameter(std::string kernelName, std::string parameterName, int parameterPosition);

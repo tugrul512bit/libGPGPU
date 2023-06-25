@@ -101,7 +101,7 @@ namespace GPGPU_LIB
 		{
 			for (auto& e : kernel.mapParameterNameToParameter)
 			{				
-				if (e.second.readOp)
+				if ((e.second.readOp && !e.second.readAll) || (e.second.readAll && e.second.hostPrm.dirtyGetter(e.second.name)))
 				{
 
 					cl_int op = queue.enqueueWriteBuffer(
@@ -126,7 +126,7 @@ namespace GPGPU_LIB
 			for (auto& e : kernel.mapParameterNameToParameter)
 			{
 
-				if (e.second.readOp)
+				if ((e.second.readOp && !e.second.readAll) || (e.second.readAll && e.second.hostPrm.dirtyGetter(e.second.name)))
 				{
 
 					cl_int op;
