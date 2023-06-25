@@ -243,6 +243,14 @@ namespace GPGPU
 		{
 			performancesOfDevices[i] /= norm; 
 		}
+
+		// make dirty inputs clean again
+		auto& ee = kernelParameters[kernelName];
+		for (auto e2 : ee)
+		{
+			hostParameters[e2.first].dirty = false;
+		}
+		
 		return performancesOfDevices;
 	}
 
@@ -417,6 +425,13 @@ namespace GPGPU
 			workers[i]->waitAllTasks();
 		}
 
+		// make dirty inputs clean again
+		auto& ee = kernelParameters[kernelName];
+		for (auto e2 : ee)
+		{
+			hostParameters[e2.first].dirty = false;
+		}
+		
 		return nano;
 	}
 
@@ -596,6 +611,17 @@ namespace GPGPU
 			workers[i]->waitAllTasks();
 		}
 		
+
+
+		// make dirty inputs clean again
+		for (auto& en : kernelNames)
+		{
+			auto& ee = kernelParameters[en];
+			for (auto e2 : ee)
+			{
+				hostParameters[e2.first].dirty = false;
+			}
+		}
 		return nano;
 	}
 
