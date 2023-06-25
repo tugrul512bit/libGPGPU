@@ -22,9 +22,9 @@ namespace GPGPU_LIB
 		std::map<std::string, Kernel> mapKernelNameToKernel;
 		std::map<std::string, Parameter> mapParameterNameToParameter;
 		GPGPUTaskQueue taskQueue;
-
+		GPGPUTaskQueue retireQueue;
 		bool working;
-		bool currentWorkComplete;
+
 
 		std::map<std::string, double> benchmarks;
 		std::map<std::string, size_t> works;
@@ -45,7 +45,7 @@ namespace GPGPU_LIB
 
 		void waitAllTasks();
 
-		void run(std::string kernelName, size_t globalOffset, size_t offset, size_t numGlobal, size_t numLocal, bool multipleKernels=false, std::vector<std::string> kernelNames = std::vector<std::string>());
+		void run(std::string kernelName, size_t globalOffset, size_t offset, size_t numGlobal, size_t numLocal, bool multipleKernels = false, std::vector<std::string> kernelNames = std::vector<std::string>());
 
 		std::string deviceName();
 		std::string deviceNameSimple();
