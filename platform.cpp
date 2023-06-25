@@ -46,10 +46,10 @@ namespace GPGPU_LIB
 			for (int i = 0; i < platforms.size(); i++)
 			{
 				std::vector<cl::Device> devicesTmp;
-				cl_int op = platforms[i].getDevices(typeOfDevice, &devicesTmp);
-				if (op != CL_SUCCESS)
+				cl_int op2 = platforms[i].getDevices(typeOfDevice, &devicesTmp);
+				if (op2 != CL_SUCCESS)
 				{
-					throw std::invalid_argument(std::string("getDevices error: ") + getErrorString(op));
+					throw std::invalid_argument(std::string("getDevices error: ") + getErrorString(op2));
 				}
 
 
