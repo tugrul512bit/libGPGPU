@@ -19,9 +19,7 @@ namespace GPGPU
 		elementsPerThr(elementsPerThread),
 		readOp(read),
 		writeOp(write),
-		readAllOp(readAll),
-		dirty(false),
-		dirtySetter([](std::string str) {})
+		readAllOp(readAll)
 	{
 		// if a buffer is meant to be read-write in kernel, then it can not be read/written from host side for optimization reasons so use it as read=false write=false that means only device can access it.
 		if (read && write)
