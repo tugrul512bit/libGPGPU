@@ -39,7 +39,7 @@ int main()
 {
     try
     {
-        const int n = 1024; // number of array elements to test
+        const int n = 16; // number of array elements to test
 
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL); // allocate all devices for computations
         for (auto& name : computer.deviceNames())
@@ -47,10 +47,10 @@ int main()
 
         // compile a kernel to do C=A*m+B for all elements
         computer.compile(R"(
-            kernel void blendFunc(float multiplier, global float * A, global float * B, global float * C) 
+            kernel void blendFunc(global float * multiplier, global float * A, global float * B, global float * C) 
             { 
                 int id=get_global_id(0); 
-                C[id] = A[id] * multiplier + B[id];
+                C[id] = A[id] * multiplier[0] + B[id];
              })", "blendFunc");
 
         // create host arrays that will be auto-copied-to/from GPUs/CPUs/Accelerators before/after kernel runs
@@ -62,18 +62,36 @@ int main()
         auto A = computer.createArrayInputLoadBalanced<float>("A", n);
         auto B = computer.createArrayInputLoadBalanced<float>("B", n);
         auto C = computer.createArrayOutput<float>("C", n);
-        
-        // initialize one element for testing
-        A.access<float>(400) = 2.0f;
-        B.access<float>(400) = -3.1415f;
 
+        // initialize one element for testing
+        for (int i = 0; i < 16; i++)
+        {
+            A.access<float>(i) = 2.0f;
+            B.access<float>(i) = -3.1415f;
+        }
         // initializing all elements at once
-        C = 0.0f; 
+        C = 0.0f;
+
 
         // compute, uses all GPUs and other devices with load-balancing to give faster devices more job to minimize overall latency of kernel (including copy latency too)
-        computer.compute(multiplier.next(A).next(B).next(C),"blendFunc",0,n,64);
-        std::cout << "PI = " << C.access<float>(400) << std::endl;
+        computer.compute(multiplier.next(A).next(B).next(C), "blendFunc", 0, n, 1);
 
+        for (int i = 0; i < 16; i++)
+        {
+            std::cout << "PI = " << C.access<float>(i) << std::endl;
+        }
+
+        std::cout << " ---------------------- " << std::endl;
+
+        multiplier = 2.0f * 3.1415f;
+
+        // compute, uses all GPUs and other devices with load-balancing to give faster devices more job to minimize overall latency of kernel (including copy latency too)
+        computer.compute(multiplier.next(A).next(B).next(C), "blendFunc", 0, n, 1); // normally workgroup-size should be like 64 or 256 instead of 1 and n=big multiple of it
+
+        for (int i = 0; i < 16; i++)
+        {
+            std::cout << "3*PI = " << C.access<float>(i) << std::endl;
+        }
     }
     catch (std::exception& ex)
     {
@@ -83,6 +101,7 @@ int main()
 }
 
 
+
 ```
 
 output:
@@ -90,8 +109,40 @@ output:
 ```
 Device 0: GeForce GT 1030 (OpenCL 1.2 CUDA ) [direct-RAM-access disabled]
 Device 1: gfx1036 (OpenCL 2.0 AMD-APP (3444.0) )[has direct access to RAM] [direct-RAM-access disabled]
-Device 2: AMD Ryzen 9 7900 12-Core Processor (OpenCL 3.0 (Build 0) )[has direct access to RAM]
+Device 2: AMD Ryzen 9 7900 12-Core Processor (OpenCL 1.2 (Build 37) )[has direct access to RAM]
 PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+PI = 3.1415
+ ----------------------
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
+3*PI = 9.4245
 ```
 
 ## How to Select Parameters for a Kernel?
