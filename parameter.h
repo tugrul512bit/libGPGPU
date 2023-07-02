@@ -59,6 +59,12 @@ namespace GPGPU
 			return *reinterpret_cast<T*>(quickPtr + (index * elementSize));
 		}
 
+		template<typename T>
+		T* accessPtr(size_t index)
+		{
+			return reinterpret_cast<T*>(quickPtr + (index * elementSize));
+		}
+
 		HostParameter next(HostParameter prm);
 
 		// read buffer and write to region starting at ptrPrm
@@ -91,7 +97,7 @@ namespace GPGPU
 		std::string getName();		
 
 		// number of bytes per element
-		const int getElementSize() const
+		const size_t getElementSize() const
 		{
 			return elementSize;
 		}
