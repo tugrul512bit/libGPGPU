@@ -52,7 +52,7 @@ namespace GPGPU
 			false = iGPU gets direct RAM access
 			the other one works same as a discrete device
 		*/
-		Computer(int deviceSelection, int selectionIndex = DEVICE_SELECTION_ALL, int clonesPerDevice = 1, bool giveDirectRamAccessToCPU=true);
+		Computer(int deviceSelection, int selectionIndex = DEVICE_SELECTION_ALL, int clonesPerDevice = 1, bool giveDirectRamAccessToCPU=true, int maxDevices=100);
 
 		// returns number of queried devices (sum of devices from all platforms)
 		int getNumDevices();

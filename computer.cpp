@@ -2,7 +2,7 @@
 
 namespace GPGPU
 {
-	Computer::Computer(int deviceSelection, int selectionIndex, int clonesPerDevice, bool giveDirectRamAccessToCPU)
+	Computer::Computer(int deviceSelection, int selectionIndex, int clonesPerDevice, bool giveDirectRamAccessToCPU, int maxDevices)
 	{
 
 		std::vector<GPGPU_LIB::Device> allGPUs = platform.getDevices(CL_DEVICE_TYPE_GPU);
@@ -97,8 +97,8 @@ namespace GPGPU
 					offsets.push_back(1);
 					ranges.push_back(1);
 					selectedDevices[i].id = uniqueId++;// giving unique id to each device
-
-					workers.push_back(std::make_shared<GPGPU_LIB::Worker>(selectedDevices[i]));
+					if (uniqueId < maxDevices + 1)
+						workers.push_back(std::make_shared<GPGPU_LIB::Worker>(selectedDevices[i]));
 				}
 			}
 		}
@@ -199,7 +199,7 @@ namespace GPGPU
 			GPGPU_LIB::GPGPUTask task;
 			task.taskType = GPGPU_LIB::GPGPUTask::GPGPU_TASK_NULL;
 			taskQueue->push(task);
-			workers[i]->runTasks(taskQueue,kernelName);
+			workers[i]->runTasks(taskQueue, kernelName);
 		}
 
 		//std::cout << "debug 2" << std::endl;
@@ -215,14 +215,14 @@ namespace GPGPU
 		for (int i = 0; i < workers.size(); i++)
 		{
 			std::unique_lock<std::mutex> lock(workers[i]->commonSync);
-	
-			performancesOfDevices[i] = workers[i]->works[kernelName]/workers[i]->benchmarks[kernelName];
-			norm += performancesOfDevices[i]; 
+
+			performancesOfDevices[i] = workers[i]->works[kernelName] / workers[i]->benchmarks[kernelName];
+			norm += performancesOfDevices[i];
 		}
 
 		for (int i = 0; i < workers.size(); i++)
 		{
-			performancesOfDevices[i] /= norm; 
+			performancesOfDevices[i] /= norm;
 		}
 		return performancesOfDevices;
 	}
@@ -381,7 +381,7 @@ namespace GPGPU
 		// do some work while gpus are working independently
 		oldLoadBalnc.push_back(avg);
 		double norm = 0.0;
-		
+
 		for (int i = 0; i < n; i++)
 		{
 			nano[i] = ranges[i];
@@ -435,8 +435,8 @@ namespace GPGPU
 
 		for (int i = 0; i < n; i++)
 		{
-			std::unique_lock<std::mutex> lock(workers[i]->commonSync); 
-			if(workers[i]->benchmarks.find(kernelName) == workers[i]->benchmarks.end())
+			std::unique_lock<std::mutex> lock(workers[i]->commonSync);
+			if (workers[i]->benchmarks.find(kernelName) == workers[i]->benchmarks.end())
 				workers[i]->benchmarks[kernelName] = 1;
 			nano[i] = workers[i]->benchmarks[kernelName];
 
@@ -555,7 +555,7 @@ namespace GPGPU
 		{
 			workers[i]->run(kernelName, offsetElement, offsets[i], ranges[i], numLocalThreads, true, kernelNames);
 		}
-		
+
 
 		// do some work while gpus are working independently
 		oldLoadBalnc.push_back(avg);
@@ -576,7 +576,7 @@ namespace GPGPU
 		{
 			workers[i]->waitAllTasks();
 		}
-		
+
 		return nano;
 	}
 
@@ -597,9 +597,9 @@ namespace GPGPU
 		}
 
 		if (fineGrainedLoadBalancing)
-			performancesOfDevices=runFineGrainedLoadBalancing(kernelName, offsetElement, numGlobalThreads, numLocalThreads, fineGrainSize == 0 ? numLocalThreads : fineGrainSize);
+			performancesOfDevices = runFineGrainedLoadBalancing(kernelName, offsetElement, numGlobalThreads, numLocalThreads, fineGrainSize == 0 ? numLocalThreads : fineGrainSize);
 		else
-			performancesOfDevices=run(kernelName, offsetElement, numGlobalThreads, numLocalThreads);
+			performancesOfDevices = run(kernelName, offsetElement, numGlobalThreads, numLocalThreads);
 		return performancesOfDevices;
 	}
 
@@ -651,7 +651,7 @@ namespace GPGPU
 		{
 			performancesOfDevices = runMultiple(kernelNames, offsetElement, numGlobalThreads, numLocalThreads);
 		}
-				
+
 		return performancesOfDevices;
 	}
 
@@ -660,8 +660,8 @@ namespace GPGPU
 		std::vector<std::string> names;
 		for (int i = 0; i < workers.size(); i++)
 		{
-			if(detailed)
-				names.push_back(std::string("Device ")+std::to_string(i)+std::string(": ") + workers[i]->deviceName() + (!workers[i]->context.device.sharesRAM ? " [direct-RAM-access disabled]" : ""));
+			if (detailed)
+				names.push_back(std::string("Device ") + std::to_string(i) + std::string(": ") + workers[i]->deviceName() + (!workers[i]->context.device.sharesRAM ? " [direct-RAM-access disabled]" : ""));
 			else
 				names.push_back(workers[i]->deviceNameSimple());
 		}
