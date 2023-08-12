@@ -10,7 +10,7 @@ int main()
 {
     try
     {
-        const int n = 1024; // number of array elements to test
+        const int n = 1024; // number of array elements to test 
 
         GPGPU::Computer computer(GPGPU::Computer::DEVICE_ALL); // allocate all devices for computations
 
