@@ -23,8 +23,17 @@ namespace GPGPU_LIB
 	{
 		cl_int op = 0;
 		kernel.mapParameterNameToParameter[prm.name] = prm;
-		op = kernel.kernel.setArg(idx, prm.buffer);
 		
+			
+		cl::size_type st = prm.elementSize;	
+		if (prm.n == 1 && prm.isScalar())
+		{
+			
+			kernel.kernel.setArg(idx, st, prm.hostPrm.quickPtr);
+		}
+		else
+			op = kernel.kernel.setArg(idx, prm.buffer);
+
 		if (op != CL_SUCCESS)
 		{
 			throw std::invalid_argument(std::string("setArg error: ") + getErrorString(op));

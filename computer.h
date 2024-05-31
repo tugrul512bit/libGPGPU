@@ -73,9 +73,9 @@ namespace GPGPU
 		!!! host parameter can only be input-only or output-only (currently) (because this lets all devices run independently without extra synchronization cost) !!!
 		*/
 		template<typename T>
-		HostParameter createHostParameter(std::string parameterName, size_t numElements, size_t numElementsPerThread, bool isInput, bool isOutput, bool isInputWithAllElements,bool isOutputWithAllElements)
+		HostParameter createHostParameter(std::string parameterName, size_t numElements, size_t numElementsPerThread, bool isInput, bool isOutput, bool isInputWithAllElements,bool isOutputWithAllElements, bool isScalar)
 		{
-			hostParameters[parameterName] = HostParameter(parameterName, numElements, sizeof(T), numElementsPerThread, isInput, isOutput, isInputWithAllElements,isOutputWithAllElements);
+			hostParameters[parameterName] = HostParameter(parameterName, numElements, sizeof(T), numElementsPerThread, isInput, isOutput, isInputWithAllElements,isOutputWithAllElements,isScalar);
 			for (int i = 0; i < workers.size(); i++)
 			{
 				workers[i]->mirror(&hostParameters[parameterName]);
@@ -87,7 +87,7 @@ namespace GPGPU
 		template<typename T>
 		HostParameter createScalarInput(std::string parameterName)
 		{
-			return createHostParameter<T>(parameterName, 1, 1, true, false, true,false);
+			return createHostParameter<T>(parameterName, 1, 1, true, false, true,false,true);
 		}
 
 		// creates input array. All elements are copied to all devices.
@@ -95,7 +95,7 @@ namespace GPGPU
 		template<typename T>
 		HostParameter createArrayInput(std::string parameterName, size_t numElements, size_t numElementsPerThread=1)
 		{
-			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, true, false, true,false);
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, true, false, true,false,false);
 		}
 
 		// creates input array. Devices get only their own elements.
@@ -103,7 +103,7 @@ namespace GPGPU
 		template<typename T>
 		HostParameter createArrayInputLoadBalanced(std::string parameterName, size_t numElements, size_t numElementsPerThread=1)
 		{
-			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, true, false, false,false);
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, true, false, false,false,false);
 		}
 
 		// creates output array. Devices copy only their own elements to the output because of possible race-conditions
@@ -111,7 +111,7 @@ namespace GPGPU
 		template<typename T>
 		HostParameter createArrayOutput(std::string parameterName, size_t numElements, size_t numElementsPerThread=1)
 		{
-			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, true, false,false);
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, true, false,false,false);
 		}
 
 
@@ -120,14 +120,14 @@ namespace GPGPU
 		template<typename T>
 		HostParameter createArrayOutputAll(std::string parameterName, size_t numElements, size_t numElementsPerThread = 1)
 		{
-			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, true, false, true);
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, true, false, true,false);
 		}
 
 		// creates array that is not used for I/O with host (only meant for device-side state storage)
 		template<typename T>
 		HostParameter createArrayState(std::string parameterName, size_t numElements, size_t numElementsPerThread = 1)
 		{
-			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, false, false,false);
+			return createHostParameter<T>(parameterName, numElements, numElementsPerThread, false, false, false,false,false);
 		}
 
 		// binds a parameter to a kernel at parameterPosition-th position
