@@ -39,7 +39,7 @@ namespace GPGPU_LIB
 			{				
 				if (e.second.readOp)
 				{
-
+					
 					cl_int op = queue.enqueueWriteBuffer(
 						e.second.buffer,
 						CL_FALSE,
@@ -64,7 +64,7 @@ namespace GPGPU_LIB
 
 				if (e.second.readOp)
 				{
-
+					
 					cl_int op;
 					void* ptrMap = queue.enqueueMapBuffer(
 						e.second.buffer,
@@ -98,16 +98,14 @@ namespace GPGPU_LIB
 		if (!sharesRAM)
 		{
 			for (auto& e : kernel.mapParameterNameToParameter)
-			{
-
+			{			
 				if (e.second.writeOp)
 				{
-
 					cl_int op = queue.enqueueReadBuffer(
 						e.second.buffer,
 						CL_FALSE,
-						(globalOffset * e.second.elementSize * e.second.elementsPerThread + offsetElement * e.second.elementSize * e.second.elementsPerThread),
-						(numElement * e.second.elementSize * e.second.elementsPerThread),
+						e.second.writeAll?0:(globalOffset * e.second.elementSize * e.second.elementsPerThread + offsetElement * e.second.elementSize * e.second.elementsPerThread),
+						e.second.writeAll?(e.second.elementSize*e.second.n):(numElement * e.second.elementSize * e.second.elementsPerThread),
 						e.second.hostPrm.quickPtr +
 						(
 							(globalOffset * e.second.elementSize * e.second.elementsPerThread + offsetElement * e.second.elementSize * e.second.elementsPerThread)
@@ -136,8 +134,8 @@ namespace GPGPU_LIB
 						e.second.buffer,
 						CL_FALSE,
 						CL_MAP_READ,
-						(globalOffset * e.second.elementSize * e.second.elementsPerThread + offsetElement * e.second.elementSize * e.second.elementsPerThread),
-						(numElement * e.second.elementSize * e.second.elementsPerThread),
+						e.second.writeAll?0:(globalOffset * e.second.elementSize * e.second.elementsPerThread + offsetElement * e.second.elementSize * e.second.elementsPerThread),
+						e.second.writeAll?(e.second.elementSize * e.second.n):(numElement * e.second.elementSize * e.second.elementsPerThread),
 						nullptr,
 						nullptr,
 						&op

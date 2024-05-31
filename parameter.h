@@ -41,6 +41,7 @@ namespace GPGPU
 		bool readOp;
 		bool writeOp;
 		bool readAllOp;
+		bool writeAllOp;
 	public:
 		HostParameter(
 			std::string parameterName = "",
@@ -49,7 +50,8 @@ namespace GPGPU
 			size_t elementsPerThread = 1,
 			bool read = false,
 			bool write = false,
-			bool readAll = false
+			bool readAll = false,
+			bool writeAll = false
 		);
 
 		// operator overloading from char buffer
@@ -130,6 +132,7 @@ namespace GPGPU
 			readOp=hPrm.readOp;
 			writeOp=hPrm.writeOp;
 			readAllOp=hPrm.readAllOp;
+			writeAllOp = hPrm.writeAllOp;
 		}
 
 	};
@@ -152,6 +155,7 @@ namespace GPGPU_LIB
 		bool readOp;
 		bool writeOp;
 		bool readAll;
+		bool writeAll;
 		Parameter(Context con = Context(), GPGPU::HostParameter hostParameter = GPGPU::HostParameter());
 	};
 
